@@ -1,0 +1,24 @@
+server:
+  host: "localhost"
+  port: 8081
+  timeout: 30
+
+adapter:
+  host: "localhost"
+  port: 8081
+  timeout: 30
+
+logging:
+  level: "debug"
+  file: "client.log"
+  max_size: 100
+  max_backups: 3
+  max_age: 28
+  compress: true
+
+gui:
+  theme: "light"
+  window:
+    title: "Device Management System"
+    width: 1200
+    height: 800 

@@ -1,0 +1,144 @@
+.layout {
+  min-height: 100vh;
+}
+
+.sider {
+  box-shadow: 2px 0 8px 0 rgba(29, 35, 41, 0.05);
+  z-index: 10;
+  background: #fff;
+}
+
+.logo {
+  height: 64px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #001529;
+  overflow: hidden;
+  gap: 12px;
+}
+
+.logoIcon {
+  font-size: 24px;
+  color: #1890ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  margin-right: 12px;
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.logoTitle {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.logoSubtitle {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.trigger {
+  font-size: 18px;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.trigger:hover {
+  color: #1890ff;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userName {
+  color: #fff;
+  margin-right: 8px;
+}
+
+.logoutButton {
+  color: #fff;
+  border-color: #fff;
+}
+
+.logoutButton:hover {
+  color: #1890ff;
+  border-color: #1890ff;
+  background: #fff;
+}
+
+.headerRight :global(.ant-btn) {
+  height: 40px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.headerRight :global(.ant-btn-text) {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.headerRight :global(.ant-btn-text:hover) {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.content {
+  margin: 24px;
+  padding: 24px;
+  background: #fff;
+  min-height: 280px;
+}
+
+.menu {
+  height: 100%;
+  border-right: 0;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+  }
+
+  .content {
+    margin: 12px;
+    padding: 12px;
+  }
+
+  .headerRight :global(.ant-btn) {
+    padding: 0 8px;
+  }
+
+  .headerRight :global(.ant-btn-text) {
+    padding: 0;
+  }
+} 

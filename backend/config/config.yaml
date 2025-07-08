@@ -1,0 +1,43 @@
+server:
+  host: "0.0.0.0"
+  port: 8081
+  timeout: 30
+
+database:
+  type: "sqlite"
+  path: "netmanager.db"
+  username: ""
+  password: ""
+
+jwt:
+  secret: "your-secret-key-here"
+  expires_in: 24h # 令牌过期时间
+
+board:
+  url: "http://localhost:8080/atservice.fcgi"
+  timeout: 5
+  retry_count: 3
+  retry_interval: 1
+
+logging:
+  level: "debug"
+  file: "backend.log"
+  max_size: 100    # MB
+  max_backups: 3
+  max_age: 28      # days
+  compress: true
+
+vendors:
+  - name: "vendor1"
+    board_url: "http://board1:8080/atservice.fcgi"
+    at_prefix: "AT"
+    at_suffix: "\r\n"
+  - name: "vendor2"
+    board_url: "http://board2:8080/atservice.fcgi"
+    at_prefix: "AT"
+    at_suffix: "\r\n"
+
+device:
+  scan_interval: 30
+  timeout: 10
+  retry_count: 3 

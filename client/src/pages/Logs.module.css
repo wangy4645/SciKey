@@ -1,0 +1,68 @@
+.container {
+  padding: 24px;
+}
+
+.filterCard {
+  margin-bottom: 24px;
+}
+
+.filterForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filterItem {
+  flex: 1;
+  min-width: 200px;
+}
+
+.dateRangePicker {
+  width: 100%;
+}
+
+.logTable {
+  margin-top: 24px;
+}
+
+.logLevel {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.logLevel.info {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.logLevel.warning {
+  background-color: #fffbe6;
+  color: #faad14;
+}
+
+.logLevel.error {
+  background-color: #fff2f0;
+  color: #ff4d4f;
+}
+
+.logLevel.debug {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.logMessage {
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.pagination {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.exportButton {
+  margin-left: 16px;
+} 

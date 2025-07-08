@@ -1,0 +1,56 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  background: #f5f6fa;
+}
+
+h1 {
+  color: #1677ff;
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* 确保按钮保持默认的蓝色样式 */
+.ant-btn-primary {
+  background-color: #1890ff !important;
+  border-color: #1890ff !important;
+  box-shadow: none !important;
+  transition: all 0.3s ease !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #40a9ff !important;
+  border-color: #40a9ff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.ant-btn-primary:active {
+  background-color: #096dd9 !important;
+  border-color: #096dd9 !important;
+}
+
+/* 确保其他按钮类型也保持默认样式 */
+.ant-btn {
+  transition: all 0.3s ease !important;
+}
+
+.ant-btn:hover {
+  transform: none !important;
+}
+
+/* 排除登录页面的按钮样式 */
+.Login_card__Mq7Y4 .ant-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+.Login_card__Mq7Y4 .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+} 

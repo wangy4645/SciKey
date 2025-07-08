@@ -1,0 +1,221 @@
+# 1.0版本单板AT指令配置
+board_type: "1.0"
+description: "1.0版本单板AT指令集"
+version: "1.0"
+
+commands:
+  # 接入状态
+  get_access_state:
+    at_command: "AT^DACS?"
+    description: "获取接入状态"
+    response_format: "text"
+
+  set_access_state:
+    at_command: "AT^DACS=%d"
+    description: "设置接入状态上报"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0: 关闭, 1: 开启, 2: 查询当前信息"
+
+  # 连接态无线参数实时生效配置
+  get_radio_params:
+    at_command: "AT^DRPC?"
+    description: "获取无线参数配置"
+    response_format: "text"
+
+  set_radio_params:
+    at_command: "AT^DRPC=%d,%d,%s"
+    description: "设置无线参数"
+    parameters:
+      - name: "freq"
+        type: "int"
+        range: [8060, 24814]
+        description: "频点频率(100KHz)"
+      - name: "bandwidth"
+        type: "int"
+        values: [0, 1, 2, 3, 5]
+        description: "带宽(0:1.4M, 1:3M, 2:5M, 3:10M, 5:20M)"
+      - name: "power"
+        type: "string"
+        pattern: "^-?\\d+$"
+        description: "发射功率(dBm), 范围-40到40"
+
+  # 非连接态无线参数配置
+  get_radio_params_store:
+    at_command: "AT^DRPS?"
+    description: "获取存储的无线参数"
+    response_format: "text"
+
+  set_radio_params_store:
+    at_command: "AT^DRPS=%d,%d,%s"
+    description: "存储无线参数"
+    parameters:
+      - name: "freq"
+        type: "int"
+        range: [8060, 24814]
+        description: "频点频率(100KHz)"
+      - name: "bandwidth"
+        type: "int"
+        values: [0, 1, 2, 3, 5]
+        description: "带宽(0:1.4M, 1:3M, 2:5M, 3:10M, 5:20M)"
+      - name: "power"
+        type: "string"
+        pattern: "^-?\\d+$"
+        description: "发射功率(dBm), 范围-40到40"
+
+  # 从节点最大发射功率配置
+  get_slave_max_tx_power:
+    at_command: "AT^DSSMTP?"
+    description: "获取从节点最大发射功率"
+    response_format: "text"
+
+  set_slave_max_tx_power:
+    at_command: "AT^DSSMTP=%s"
+    description: "设置从节点最大发射功率"
+    parameters:
+      - name: "power"
+        type: "string"
+        pattern: "^-?\\d+$"
+        description: "从节点最大发射功率(dBm), 范围-40到40"
+
+  # 无线参数上报
+  get_radio_param_report:
+    at_command: "AT^DRPR?"
+    description: "获取无线参数上报状态"
+    response_format: "text"
+
+  set_radio_param_report:
+    at_command: "AT^DRPR=%d"
+    description: "设置无线参数上报"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:关闭, 1:开启, 2:查询当前信息"
+
+  # 所有接入节点无线参数上报
+  get_all_radio_param_report:
+    at_command: "AT^DAPR?"
+    description: "获取所有接入节点无线参数上报状态"
+    response_format: "text"
+
+  set_all_radio_param_report:
+    at_command: "AT^DAPR=%d"
+    description: "设置所有接入节点无线参数上报"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:关闭, 1:开启, 2:查询当前信息"
+
+  # 用户频段配置
+  get_band_config:
+    at_command: "AT^DAOCNDI?"
+    description: "获取用户频段配置"
+    response_format: "text"
+
+  set_band_config:
+    at_command: "AT^DAOCNDI=%s"
+    description: "设置用户频段配置"
+    parameters:
+      - name: "band_bitmap"
+        type: "string"
+        pattern: "^[0-9A-Fa-f]+$"
+        description: "频段位图(十六进制), Bit0:800M, Bit2:1.4G, Bit3:2.4G"
+
+  # 设备类型配置
+  get_device_type:
+    at_command: "AT^DDTC?"
+    description: "获取设备类型配置"
+    response_format: "text"
+
+  set_device_type:
+    at_command: "AT^DDTC=%d"
+    description: "设置设备类型"
+    parameters:
+      - name: "type"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:自动, 1:中心节点, 2:接入节点"
+
+  # 加密算法配置
+  get_encryption_algorithm:
+    at_command: "AT^DCIAC?"
+    description: "获取加密算法配置"
+    response_format: "text"
+
+  set_encryption_algorithm:
+    at_command: "AT^DCIAC=%d"
+    description: "设置加密算法"
+    parameters:
+      - name: "algorithm"
+        type: "int"
+        values: [0, 1, 2, 3]
+        description: "加密算法(0:无加密, 1:SNOW, 2:AES, 3:ZUC)"
+
+  # TDD配置
+  get_tdd_config:
+    at_command: "AT^DSTC?"
+    description: "获取TDD配置"
+    response_format: "text"
+
+  set_tdd_config:
+    at_command: "AT^DSTC=%d"
+    description: "设置TDD配置"
+    parameters:
+      - name: "config"
+        type: "int"
+        values: [0, 1, 2, 3]
+        description: "TDD配置(0:2D3U, 1:3D2U, 2:4D1U, 3:1D4U)"
+
+  # 跳频控制
+  get_frequency_hopping:
+    at_command: "AT^DFHC?"
+    description: "获取跳频控制状态"
+    response_format: "text"
+
+  set_frequency_hopping:
+    at_command: "AT^DFHC=%d"
+    description: "设置跳频控制"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1]
+        description: "0:关闭跳频, 1:开启跳频"
+
+  # 设备状态
+  get_device_status:
+    at_command: "AT+STATUS?"
+    description: "获取设备状态"
+    response_format: "text"
+
+  # 通用配置
+  get_config:
+    at_command: "AT+CONFIG?"
+    description: "获取通用配置"
+    response_format: "text"
+
+  set_config:
+    at_command: "AT+CONFIG=%s,%s,%s,%s,%s,%s"
+    description: "设置通用配置"
+    parameters:
+      - name: "frequency_band"
+        type: "string"
+        description: "频段"
+      - name: "bandwidth"
+        type: "string"
+        description: "带宽"
+      - name: "center_freq"
+        type: "string"
+        description: "中心频率"
+      - name: "transmit_power"
+        type: "string"
+        description: "发射功率"
+      - name: "encryption"
+        type: "string"
+        description: "加密方式"
+      - name: "encryption_key"
+        type: "string"
+        description: "加密密钥" 

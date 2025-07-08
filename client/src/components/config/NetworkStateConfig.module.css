@@ -1,0 +1,90 @@
+.container {
+  padding: 24px;
+}
+
+.card {
+  margin-bottom: 24px;
+}
+
+.statistic {
+  text-align: center;
+}
+
+.form {
+  max-width: 600px;
+}
+
+.formItem {
+  margin-bottom: 16px;
+}
+
+.buttonGroup {
+  margin-top: 24px;
+  text-align: right;
+}
+
+.buttonGroup button {
+  margin-left: 8px;
+}
+
+.configCard {
+  margin-bottom: 24px;
+}
+
+.statisticCard {
+  background: #fafafa;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.statusIndicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.statusOnline {
+  background-color: #52c41a;
+}
+
+.statusOffline {
+  background-color: #ff4d4f;
+}
+
+.statusWarning {
+  background-color: #faad14;
+}
+
+.configCard :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.configCard :global(.ant-form-item) {
+  margin-bottom: 24px;
+}
+
+.configCard :global(.ant-form-item-label) {
+  font-weight: 500;
+}
+
+.configCard :global(.ant-input),
+.configCard :global(.ant-select),
+.configCard :global(.ant-input-number) {
+  width: 100%;
+}
+
+.configCard :global(.ant-statistic-title) {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.configCard :global(.ant-statistic-content) {
+  font-size: 24px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.configCard :global(.ant-card) {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+} 

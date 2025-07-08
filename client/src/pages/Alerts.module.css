@@ -1,0 +1,95 @@
+.container {
+  padding: 24px;
+}
+
+.filterCard {
+  margin-bottom: 24px;
+}
+
+.filterForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filterItem {
+  flex: 1;
+  min-width: 200px;
+}
+
+.dateRangePicker {
+  width: 100%;
+}
+
+.alertTable {
+  margin-top: 24px;
+}
+
+.alertSeverity {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.alertSeverity.critical {
+  background-color: #fff2f0;
+  color: #ff4d4f;
+}
+
+.alertSeverity.high {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+
+.alertSeverity.medium {
+  background-color: #fffbe6;
+  color: #faad14;
+}
+
+.alertSeverity.low {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+
+.alertStatus {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.alertStatus.active {
+  background-color: #fff2f0;
+  color: #ff4d4f;
+}
+
+.alertStatus.acknowledged {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.alertStatus.resolved {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+
+.alertMessage {
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.pagination {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.exportButton {
+  margin-left: 16px;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+} 

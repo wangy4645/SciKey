@@ -1,0 +1,88 @@
+.container {
+  padding: 24px;
+}
+
+.card {
+  margin-bottom: 24px;
+}
+
+.form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.formItem {
+  margin-bottom: 24px;
+}
+
+.buttonGroup {
+  margin-top: 24px;
+  text-align: right;
+}
+
+.buttonGroup button {
+  margin-left: 8px;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dangerZone {
+  margin-top: 32px;
+  padding: 16px;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+}
+
+.dangerZone h3 {
+  color: #ff4d4f;
+  margin-bottom: 16px;
+}
+
+.dangerButton {
+  margin-right: 8px;
+}
+
+.backupList {
+  margin-top: 16px;
+}
+
+.backupItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.backupInfo {
+  flex: 1;
+}
+
+.backupActions {
+  display: flex;
+  gap: 8px;
+}
+
+.uploadArea {
+  margin-top: 16px;
+  padding: 24px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.uploadArea:hover {
+  border-color: #1890ff;
+} 

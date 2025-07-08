@@ -1,0 +1,40 @@
+# Node
+node_modules/
+client/node_modules/
+backend/node_modules/
+
+# Build
+build/
+dist/
+client/build/
+client/dist/
+
+# Cache
+.cache/
+client/.cache/
+client/node_modules/.cache/
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+backend/netmanager.db
+
+# Binary
+server
+backend/server
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.* 

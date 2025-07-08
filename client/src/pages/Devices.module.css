@@ -1,0 +1,123 @@
+.container {
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.searchBar {
+  width: 300px;
+}
+
+.table {
+  background: #fff;
+  padding: 24px;
+  border-radius: 4px;
+}
+
+.statusTag {
+  min-width: 80px;
+  text-align: center;
+}
+
+.typeTag {
+  min-width: 60px;
+  text-align: center;
+}
+
+.actionButton {
+  margin-right: 8px;
+}
+
+.actionButton:last-child {
+  margin-right: 0;
+}
+
+.formItem {
+  margin-bottom: 16px;
+}
+
+.formFooter {
+  text-align: right;
+  margin-top: 24px;
+}
+
+.formFooter button {
+  margin-left: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+
+.form {
+  max-width: 600px;
+}
+
+.buttonGroup {
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+}
+
+.tableCard {
+  margin-top: 24px;
+}
+
+.deviceStats {
+  margin-bottom: 24px;
+}
+
+.deviceList {
+  margin-top: 24px;
+}
+
+.tableCard :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tableCard :global(.ant-table-thead > tr > th) {
+  background: #fafafa;
+  font-weight: 500;
+}
+
+.tableCard :global(.ant-table-tbody > tr:hover > td) {
+  background: #f5f5f5;
+}
+
+.tableCard :global(.ant-table-row) {
+  cursor: pointer;
+}
+
+.tableCard :global(.ant-btn-text) {
+  padding: 4px 8px;
+}
+
+.tableCard :global(.ant-btn-text:hover) {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.tableCard :global(.ant-tag) {
+  margin-right: 0;
+}
+
+.tableCard :global(.ant-badge-status-text) {
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .tableCard {
+    margin-top: 16px;
+  }
+} 

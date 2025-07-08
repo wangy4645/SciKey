@@ -1,0 +1,264 @@
+.container {
+  padding: 24px;
+  min-height: 100%;
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.card :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.card :global(.ant-card-body) {
+  padding: 24px;
+}
+
+.card :global(.ant-form-item-label) {
+  font-weight: 500;
+}
+
+.card :global(.ant-input-number) {
+  width: 100%;
+}
+
+.card :global(.ant-divider) {
+  margin: 24px 0;
+}
+
+.card :global(.ant-divider-inner-text) {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.actions {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
+  text-align: right;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .card :global(.ant-card-head) {
+    padding: 12px 16px;
+  }
+
+  .card :global(.ant-card-body) {
+    padding: 16px;
+  }
+
+  .actions {
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 4px;
+}
+
+.tabPane {
+  padding: 16px 0;
+}
+
+.buttonGroup {
+  text-align: right;
+  margin-top: 16px;
+}
+
+.buttonGroup button {
+  margin-left: 8px;
+}
+
+.description {
+  margin-bottom: 16px;
+  color: #666;
+  font-size: 14px;
+}
+
+.currentConfig {
+  margin-bottom: 16px;
+}
+
+.settingValue {
+  margin-bottom: 16px;
+}
+
+.currentConfig strong,
+.settingValue strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 600;
+}
+
+.warningText {
+  color: #d48806;
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Frequency Hopping 样式 */
+.statusDisplay {
+  margin-top: 12px;
+}
+
+.statusIndicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.statusActive {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
+}
+
+.statusInactive {
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  color: #ff4d4f;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  transition: all 0.3s ease;
+}
+
+.statusActive .statusDot {
+  background-color: #52c41a;
+  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.2);
+}
+
+.statusInactive .statusDot {
+  background-color: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
+}
+
+.statusText {
+  font-weight: 600;
+}
+
+.hoppingControls {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.controlDescription {
+  margin-bottom: 24px;
+  color: #595959;
+}
+
+.controlDescription strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  color: #262626;
+}
+
+.controlDescription p {
+  margin: 0;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.hoppingButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.hoppingButton {
+  min-width: 120px;
+  height: 48px;
+  border-radius: 8px;
+  border: 2px solid #e8e8e8;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.hoppingButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.hoppingButton.activeButton {
+  border-color: #1890ff;
+  background-color: #e6f7ff;
+}
+
+.openButton {
+  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+  border-color: #52c41a;
+  color: white;
+}
+
+.openButton:hover {
+  background: linear-gradient(135deg, #389e0d 0%, #52c41a 100%);
+  border-color: #389e0d;
+}
+
+.closeButton {
+  background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+  border-color: #ff4d4f;
+  color: white;
+}
+
+.closeButton:hover {
+  background: linear-gradient(135deg, #cf1322 0%, #ff4d4f 100%);
+  border-color: #cf1322;
+}
+
+.hoppingButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .hoppingButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .hoppingButton {
+    width: 100%;
+    max-width: 200px;
+  }
+} 

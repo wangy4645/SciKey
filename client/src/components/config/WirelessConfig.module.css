@@ -1,0 +1,132 @@
+.container {
+  padding: 24px;
+}
+
+.card {
+  margin-bottom: 24px;
+}
+
+.form {
+  max-width: 600px;
+}
+
+.formItem {
+  margin-bottom: 16px;
+}
+
+.channelSelect {
+  width: 100%;
+}
+
+.powerSelect {
+  width: 200px;
+}
+
+.buttonGroup {
+  margin-top: 24px;
+  text-align: right;
+}
+
+.buttonGroup button {
+  margin-left: 8px;
+}
+
+.advancedSettings {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.advancedSettings h3 {
+  margin-bottom: 16px;
+}
+
+.configCard {
+  margin-bottom: 24px;
+}
+
+.configCard :global(.ant-card-head) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.configCard :global(.ant-form-item) {
+  margin-bottom: 24px;
+}
+
+.configCard :global(.ant-form-item-label) {
+  font-weight: 500;
+}
+
+.configCard :global(.ant-input),
+.configCard :global(.ant-select),
+.configCard :global(.ant-input-number) {
+  width: 100%;
+}
+
+.configCard :global(.ant-switch) {
+  margin-right: 8px;
+}
+
+.configCard :global(.ant-btn) {
+  margin-right: 8px;
+}
+
+.configCard :global(.ant-space) {
+  margin-top: 24px;
+}
+
+.configCard :global(.ant-input-password) {
+  width: 100%;
+  max-width: 400px;
+}
+
+.configCard :global(.ant-input-number) {
+  width: 100%;
+  max-width: 200px;
+}
+
+.signalStrength {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.signalStrengthHigh {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
+}
+
+.signalStrengthMedium {
+  background-color: #fff7e6;
+  border: 1px solid #ffd591;
+  color: #fa8c16;
+}
+
+.signalStrengthLow {
+  background-color: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #f5222d;
+}
+
+.channelInfo {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+.channelInfoItem {
+  margin-bottom: 8px;
+}
+
+.channelInfoLabel {
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.channelInfoValue {
+  color: #666;
+} 
