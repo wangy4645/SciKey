@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"backend/internal/model"
@@ -169,12 +170,61 @@ func (s *Service) GetDeviceStatus(device *Device) (*DeviceStatus, error) {
 	return &status, nil
 }
 
-// DeleteDevice 删除设备
+// DeleteDevice 删除设备（彻底删除，不使用软删除）
 func (s *Service) DeleteDevice(deviceID string) error {
-	if err := s.db.Where("node_id = ?", deviceID).Delete(&Device{}).Error; err != nil {
+	// 开启事务
+	tx := s.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 将 NodeID 转换为 uint
+	deviceIDUint, err := strconv.ParseUint(deviceID, 10, 32)
+	if err != nil {
+		return fmt.Errorf("invalid device ID format: %s", deviceID)
+	}
+
+	// 删除设备相关的所有数据
+	// 1. 删除设备日志
+	if err := tx.Unscoped().Where("device_id = ?", deviceIDUint).Delete(&model.DeviceLog{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除设备日志失败: %w", err)
+	}
+
+	// 2. 删除命令日志
+	if err := tx.Unscoped().Where("device_id = ?", deviceIDUint).Delete(&model.CommandLog{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除命令日志失败: %w", err)
+	}
+
+	// 3. 删除设备配置
+	if err := tx.Unscoped().Where("device_id = ?", deviceIDUint).Delete(&model.DeviceConfig{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除设备配置失败: %w", err)
+	}
+
+	// 4. 删除监控数据
+	if err := tx.Unscoped().Where("device_id = ?", deviceIDUint).Delete(&model.MonitorData{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除监控数据失败: %w", err)
+	}
+
+	// 5. 删除AT指令映射
+	if err := tx.Unscoped().Where("device_id = ?", deviceIDUint).Delete(&model.ATCommandMapping{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除AT指令映射失败: %w", err)
+	}
+
+	// 6. 最后删除设备本身
+	if err := tx.Unscoped().Where("node_id = ?", deviceID).Delete(&Device{}).Error; err != nil {
+		tx.Rollback()
 		return fmt.Errorf("删除设备失败: %w", err)
 	}
-	return nil
+
+	// 提交事务
+	return tx.Commit().Error
 }
 
 // ListATCommandMappings 获取AT指令映射列表
@@ -204,13 +254,15 @@ func (s *Service) InitializeATCommandMappings(device *Device) error {
 	boardType := device.BoardType
 	if boardType == "" {
 		// 如果没有指定单板类型，根据设备类型推断
-		switch device.Type {
+		switch device.BoardType {
 		case "board_1.0":
-			boardType = "1.0"
+			boardType = "1.0_star"
+		case "board_1.0_mesh":
+			boardType = "1.0_mesh"
 		case "board_6680":
 			boardType = "6680"
 		default:
-			return fmt.Errorf("unknown device type: %s", device.Type)
+			return fmt.Errorf("unknown board type: %s", device.BoardType)
 		}
 	}
 
@@ -240,8 +292,14 @@ func (s *Service) InitializeATCommandMappings(device *Device) error {
 
 	// 为每个AT指令创建映射
 	for cmdType, cmdConfig := range boardConfig.ATCommands {
+		// 将 NodeID 转换为 uint，这里假设 NodeID 是数字字符串
+		deviceID, err := strconv.ParseUint(device.NodeID, 10, 32)
+		if err != nil {
+			return fmt.Errorf("invalid device ID format: %s", device.NodeID)
+		}
+
 		mapping := &model.ATCommandMapping{
-			DeviceID:    device.NodeID,
+			DeviceID:    uint(deviceID),
 			CommandType: cmdType,
 			ATCommand:   cmdConfig.Command,
 			Parameters:  cmdConfig.Parameters,

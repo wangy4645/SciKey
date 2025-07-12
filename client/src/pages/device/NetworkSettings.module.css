@@ -53,6 +53,45 @@
   text-align: right;
 }
 
+/* IP 输入组件样式 */
+.ipInputContainer {
+  width: 100%;
+}
+
+.ipInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.ipPartInput {
+  width: 80px !important;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.ipPartInput:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.ipPartInput::placeholder {
+  color: rgba(0, 0, 0, 0.25);
+  font-weight: 400;
+}
+
+.ipDot {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.65);
+  user-select: none;
+  margin: 0 4px;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .container {
@@ -70,5 +109,19 @@
   .actions {
     margin-top: 16px;
     padding-top: 16px;
+  }
+
+  .ipPartInput {
+    width: 60px !important;
+    font-size: 13px;
+  }
+
+  .ipInputGroup {
+    gap: 4px;
+  }
+
+  .ipDot {
+    font-size: 14px;
+    margin: 0 2px;
   }
 } 

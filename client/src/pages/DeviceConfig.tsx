@@ -1,147 +1,123 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Tabs, message } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, Spin, message, Button } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchDevice } from '../store/slices/deviceSlice';
 import { Device } from '../types';
-import { deviceAPI } from '../services/api';
-import { deviceConfigAPI } from '../services/deviceConfigAPI';
-import NetworkStatus from './device/NetworkStatus';
-import SecurityConfigComponent from './device/SecurityConfig';
-import WirelessConfig from './device/WirelessConfig';
-import NetSettingConfig from './device/NetSettingConfig';
-import UpDownConfig from './device/UpDownConfig';
-import DebugConfig from './device/DebugConfig';
-import SystemManagerConfig from '../components/config/SystemManagerConfig';
-import styles from './DeviceConfig.module.css';
 
-const { TabPane } = Tabs;
+// 导入不同板子的配置组件
+import Board1Config from './device/Board1Config';
+import Board1MeshConfig from './device/Board1MeshConfig';
+import Board6680Config from './device/Board6680Config';
 
 const DeviceConfig: React.FC = () => {
-  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const [currentDevice, setCurrentDevice] = useState<Device | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [selectedConfig, setSelectedConfig] = useState<string>('network');
-
-  const fetchDevice = async () => {
-    try {
-      setLoading(true);
-      const device = await deviceAPI.getDevice(parseInt(id!));
-      setCurrentDevice(device);
-    } catch (error) {
-      message.error(t('Failed to fetch device information'));
-    } finally {
-      setLoading(false);
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  
+  const getBoardTypeDisplayName = (boardType: string) => {
+    switch (boardType) {
+      case 'board_1.0':
+      case 'board_1.0_star':
+        return t('Board 1.0 Star');
+      case 'board_1.0_mesh':
+        return t('Board 1.0 Mesh');
+      case 'board_6680':
+        return t('Board 6680');
+      default:
+        return boardType;
     }
   };
-
+  
+  const [loading, setLoading] = useState(true);
+  const [device, setDevice] = useState<Device | null>(null);
+  
   useEffect(() => {
     if (id) {
-      fetchDevice();
+      loadDevice(parseInt(id));
     }
   }, [id]);
-
-  const handleSave = async (values: any, configType: string) => {
+  
+  const loadDevice = async (deviceId: number) => {
     try {
       setLoading(true);
-      // 根据配置类型调用相应的API
-      switch (configType) {
-        case 'network':
-          await deviceConfigAPI.updateNetworkConfig(parseInt(id!), values);
-          break;
-        case 'netSettings':
-          await deviceConfigAPI.updateNetSettingConfig(parseInt(id!), values);
-          break;
-        case 'up_down':
-          await deviceConfigAPI.updateUpDownConfig(parseInt(id!), values);
-          break;
-        case 'debug':
-          await deviceConfigAPI.updateDebugConfig(parseInt(id!), values);
-          break;
-        default:
-          console.warn('Unknown config type:', configType);
+      const result = await dispatch(fetchDevice(deviceId));
+      if (fetchDevice.fulfilled.match(result)) {
+        setDevice(result.payload);
+      } else {
+        message.error(t('Failed to load device'));
+        navigate('/devices');
       }
-      message.success(t('Configuration saved successfully'));
     } catch (error) {
-      message.error(t('Failed to save configuration'));
+      message.error(t('Failed to load device'));
+      navigate('/devices');
     } finally {
       setLoading(false);
     }
   };
-
+  
+  const renderConfigComponent = () => {
+    if (!device) return null;
+    
+    const props = {
+      device,
+      onConfigUpdate: () => loadDevice(device.id),
+    };
+    
+    switch (device.board_type) {
+      case 'board_1.0':
+      case 'board_1.0_star':
+        return <Board1Config {...props} />;
+      case 'board_1.0_mesh':
+        return <Board1MeshConfig {...props} />;
+      case 'board_6680':
+        return <Board6680Config {...props} />;
+      default:
+        return (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <h3>{t('Unsupported board type')}: {device.board_type}</h3>
+            <p>{t('Configuration interface not available for this board type.')}</p>
+          </div>
+        );
+    }
+  };
+  
   if (loading) {
-    return <div>{t('Loading...')}</div>;
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <Spin size="large" />
+        <p>{t('Loading device configuration...')}</p>
+      </div>
+    );
   }
-
-  if (!currentDevice) {
-    return <div>{t('Device not found')}</div>;
-  }
-
+  
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h1>{t('Device Configuration')}</h1>
-          {currentDevice && (
-            <div className={styles.deviceInfo}>
-              <span>{t('Device')}: {currentDevice.name}</span>
-              <span>{t('ID')}: {currentDevice.node_id}</span>
-              <span>{t('Type')}: {currentDevice.board_type}</span>
+    <div style={{ padding: '24px' }}>
+      <Card>
+        <div style={{ marginBottom: '16px' }}>
+          <Button 
+            icon={<ArrowLeftOutlined />} 
+            onClick={() => navigate('/devices')}
+            style={{ marginBottom: '16px' }}
+          >
+            {t('Back to Devices')}
+          </Button>
+          
+          {device && (
+            <div>
+              <h2>{t('Device Configuration')}: {device.name}</h2>
+              <p><strong>{t('Board Type')}:</strong> {getBoardTypeDisplayName(device.board_type)}</p>
+              <p><strong>{t('IP Address')}:</strong> {device.ip}</p>
+              <p><strong>{t('Node ID')}:</strong> {device.node_id}</p>
             </div>
           )}
         </div>
-      </div>
-
-      <div className={styles.content}>
-        <Tabs activeKey={selectedConfig || 'network'} onChange={setSelectedConfig}>
-          <TabPane tab={t('Network Status')} key="network">
-            <NetworkStatus
-              device={currentDevice}
-              onSave={(values) => handleSave(values, 'network')}
-              loading={loading}
-            />
-          </TabPane>
-          <TabPane tab={t('Security')} key="security">
-            <SecurityConfigComponent
-              deviceId={String(currentDevice.id)}
-            />
-          </TabPane>
-          <TabPane tab={t('Wireless')} key="wireless">
-            <WirelessConfig
-              device={currentDevice}
-              loading={loading}
-            />
-          </TabPane>
-          <TabPane tab={t('Net Setting')} key="net_setting">
-            <NetSettingConfig
-              device={currentDevice}
-              onSave={(values) => handleSave(values, 'netSettings')}
-              loading={loading}
-            />
-          </TabPane>
-          <TabPane tab={t('Up/Down')} key="up_down">
-            <UpDownConfig
-              device={currentDevice}
-              onSave={(values) => handleSave(values, 'up_down')}
-              loading={loading}
-            />
-          </TabPane>
-          <TabPane tab={t('Debug')} key="debug">
-            <DebugConfig
-              device={currentDevice}
-              onSave={(values) => handleSave(values, 'debug')}
-              loading={loading}
-            />
-          </TabPane>
-          <TabPane tab={t('System')} key="system">
-            <SystemManagerConfig
-              device={currentDevice}
-              onSave={(values) => handleSave(values, 'system')}
-              loading={loading}
-            />
-          </TabPane>
-        </Tabs>
-      </div>
+        
+        {renderConfigComponent()}
+      </Card>
     </div>
   );
 };

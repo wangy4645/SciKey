@@ -68,9 +68,23 @@ export const deviceConfigAPI = {
   syncDeviceConfig: (deviceId: number) =>
     api.post(`${API_BASE_URL}/devices/${deviceId}/sync-config`),
 
+  // 按类型同步设备配置
+  syncDeviceConfigByType: (deviceId: number, configType: string) =>
+    api.post(`${API_BASE_URL}/devices/${deviceId}/sync-config/${configType}`),
+
+  // 重启设备
+  rebootDevice: (deviceId: number) =>
+    api.post(`${API_BASE_URL}/devices/${deviceId}/reboot`),
+
   // Key Management
   getKey: (deviceId: number) =>
     api.get(`${API_BASE_URL}/devices/${deviceId}/key`),
   setKey: (deviceId: number, key: string) =>
     api.post(`${API_BASE_URL}/devices/${deviceId}/key`, { key }),
+
+  // Device Type Configuration
+  getDeviceTypeConfig: (deviceId: number) =>
+    api.get(`${API_BASE_URL}/devices/${deviceId}/configs/device_type`),
+  updateDeviceTypeConfig: (deviceId: number, config: any) =>
+    api.put(`${API_BASE_URL}/devices/${deviceId}/configs/device_type`, config),
 }; 

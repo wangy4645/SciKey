@@ -1,0 +1,79 @@
+board_type: "1.0_mesh"
+board_name: "AT_1.0_mesh"
+description: "MESH1代 AT指令集"
+
+at_commands:
+  # 基础配置命令
+  get_device_info:
+    command: "AT+DEVICE_INFO"
+    parameters: {}
+    description: "获取设备信息"
+    
+  get_network_status:
+    command: "AT+NETWORK_STATUS"
+    parameters: {}
+    description: "获取网络状态"
+    
+  get_signal_strength:
+    command: "AT+SIGNAL_STRENGTH"
+    parameters: {}
+    description: "获取信号强度"
+    
+  # 网络配置命令
+  get_network_config:
+    command: "AT+NETWORK_CONFIG"
+    parameters: {}
+    description: "获取网络配置"
+    
+  set_network_config:
+    command: "AT+NETWORK_CONFIG"
+    parameters:
+      mode: "string"
+      channel: "number"
+      power: "number"
+    description: "设置网络配置"
+    
+  # 安全配置命令
+  get_security_config:
+    command: "AT+SECURITY_CONFIG"
+    parameters: {}
+    description: "获取安全配置"
+    
+  set_security_config:
+    command: "AT+SECURITY_CONFIG"
+    parameters:
+      encryption: "string"
+      key: "string"
+    description: "设置安全配置"
+    
+  # 系统配置命令
+  get_system_config:
+    command: "AT+SYSTEM_CONFIG"
+    parameters: {}
+    description: "获取系统配置"
+    
+  set_system_config:
+    command: "AT+SYSTEM_CONFIG"
+    parameters:
+      mode: "string"
+      timeout: "number"
+    description: "设置系统配置"
+    
+  # 调试命令
+  get_debug_config:
+    command: "AT+DEBUG_CONFIG"
+    parameters: {}
+    description: "获取调试配置"
+    
+  set_debug_config:
+    command: "AT+DEBUG_CONFIG"
+    parameters:
+      level: "string"
+      output: "string"
+    description: "设置调试配置"
+    
+  # 重启命令
+  reboot_device:
+    command: "AT+REBOOT"
+    parameters: {}
+    description: "重启设备" 

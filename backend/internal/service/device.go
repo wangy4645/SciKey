@@ -4,6 +4,7 @@ import (
 	"backend/internal/db"
 	"backend/internal/model"
 	"errors"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -62,9 +63,58 @@ func (s *DeviceService) UpdateDevice(device *model.Device) error {
 	return s.db.Save(device).Error
 }
 
-// DeleteDevice 删除设备
+// DeleteDevice 删除设备（彻底删除，不使用软删除）
 func (s *DeviceService) DeleteDevice(id uint) error {
-	return s.db.Delete(&model.Device{}, id).Error
+	// 开启事务
+	tx := s.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 删除设备相关的所有数据
+	// 1. 删除设备日志
+	if err := tx.Unscoped().Where("device_id = ?", id).Delete(&model.DeviceLog{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 2. 删除命令日志
+	if err := tx.Unscoped().Where("device_id = ?", id).Delete(&model.CommandLog{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 3. 删除设备配置
+	if err := tx.Unscoped().Where("device_id = ?", id).Delete(&model.DeviceConfig{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 4. 删除监控数据
+	if err := tx.Unscoped().Where("device_id = ?", id).Delete(&model.MonitorData{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 5. 删除AT指令映射（如果表存在）
+	if err := tx.Unscoped().Where("device_id = ?", id).Delete(&model.ATCommandMapping{}).Error; err != nil {
+		// 如果表不存在，忽略错误继续执行
+		if !strings.Contains(err.Error(), "no such table") {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 6. 最后删除设备本身
+	if err := tx.Unscoped().Delete(&model.Device{}, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 提交事务
+	return tx.Commit().Error
 }
 
 func (s *DeviceService) UpdateDeviceStatus(id uint, status string) error {

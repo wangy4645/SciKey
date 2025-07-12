@@ -116,7 +116,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	token, user, err := h.authService.Login(loginRequest.Username, loginRequest.Password)
 	if err != nil {
 		log.Printf("Login failed for user %s: %v", loginRequest.Username, err)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+
+		// 根据错误类型返回不同的错误信息
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found. Please register first."})
+		} else if err.Error() == "invalid password" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		}
 		return
 	}
 

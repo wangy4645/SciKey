@@ -189,7 +189,7 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := h.deviceService.GetDeviceByID(uint(id))
+	_, err = h.deviceService.GetDeviceByID(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
 		return
@@ -199,15 +199,6 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Record operation log
-	log := &model.DeviceLog{
-		DeviceID:  device.ID,
-		Type:      "delete",
-		Message:   "Device deleted",
-		CreatedAt: time.Now(),
-	}
-	h.deviceService.CreateDeviceLog(log)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Device deleted successfully"})
 }
@@ -413,6 +404,88 @@ func (h *DeviceHandler) SyncDeviceConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Device configuration synchronized successfully",
 		"result":  syncResult,
+	})
+}
+
+// SyncDeviceConfigByType 按配置类型同步设备配置
+func (h *DeviceHandler) SyncDeviceConfigByType(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+
+	configType := c.Param("type")
+	if configType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Config type is required"})
+		return
+	}
+
+	// 获取设备信息
+	device, err := h.deviceService.GetDeviceByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+		return
+	}
+
+	// 按类型同步设备配置
+	syncResult, err := h.deviceCommService.SyncDeviceConfigByType(uint(id), configType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 记录操作日志
+	log := &model.DeviceLog{
+		DeviceID:  device.ID,
+		Type:      "config_sync",
+		Message:   fmt.Sprintf("Device %s configuration synchronized from board. Success: %d/%d", configType, syncResult["success_count"], syncResult["total_commands"]),
+		CreatedAt: time.Now(),
+	}
+	h.deviceService.CreateDeviceLog(log)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("Device %s configuration synchronized successfully", configType),
+		"result":  syncResult,
+	})
+}
+
+// RebootDevice 重启设备
+func (h *DeviceHandler) RebootDevice(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+
+	// 获取设备信息
+	device, err := h.deviceService.GetDeviceByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+		return
+	}
+
+	// 发送重启命令
+	response, err := h.deviceCommService.SendATCommandByName(uint(id), "reboot_device", nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to reboot device: %v", err)})
+		return
+	}
+
+	// 记录操作日志
+	log := &model.DeviceLog{
+		DeviceID:  device.ID,
+		Type:      "reboot",
+		Message:   "Device reboot command sent successfully",
+		CreatedAt: time.Now(),
+	}
+	h.deviceService.CreateDeviceLog(log)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Device reboot command sent successfully",
+		"response": response,
 	})
 }
 

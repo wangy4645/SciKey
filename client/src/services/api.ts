@@ -35,7 +35,8 @@ api.interceptors.response.use(
         localStorage.removeItem('user');
         window.location.href = '/login';
       }
-      return Promise.reject(new Error('Authentication required'));
+      // 对于登录页面的401错误，直接返回原始错误，不要包装成"Authentication required"
+      return Promise.reject(error);
     }
 
     // Handle not found errors

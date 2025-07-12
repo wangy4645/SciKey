@@ -19,6 +19,7 @@ import styles from './NetSettingConfig.module.css';
 import { Device } from '../../types';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
 import { useTranslation } from 'react-i18next';
+import SyncButton from '../../components/SyncButton';
 
 const { Title, Text } = Typography;
 
@@ -234,7 +235,35 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
 
   return (
     <div className={styles.container}>
-      <Card title={t('Network Settings')} className={styles.card}>
+      <Card 
+        title={t('Network Settings')} 
+        className={styles.card}
+        extra={
+          <SyncButton
+            deviceId={device.id}
+            configType="network_settings"
+            configTypeName={t('Network Settings')}
+            onSyncSuccess={() => {
+              // 重新获取网络设置配置
+              const fetchConfig = async () => {
+                try {
+                  const response = await deviceConfigAPI.getNetSettingConfig(Number(device.id));
+                  if (response && response.data && response.data.config) {
+                    const configData = response.data.config;
+                    setConfig(prev => ({
+                      ...prev,
+                      currentIP: configData.ip || device.ip || '192.168.1.100',
+                    }));
+                  }
+                } catch (error) {
+                  console.error('Error fetching net setting config:', error);
+                }
+              };
+              fetchConfig();
+            }}
+          />
+        }
+      >
         <div className={styles.warningText}>
           <InfoCircleOutlined style={{ marginRight: 8 }} />
           <strong>{t('NOTE')}&nbsp;&nbsp;</strong>{t('After IP changed, you need relogin.')}

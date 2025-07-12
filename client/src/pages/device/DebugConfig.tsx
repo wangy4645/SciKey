@@ -34,6 +34,7 @@ import styles from './DebugConfig.module.css';
 import { Device } from '../../types';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
 import { useTranslation } from 'react-i18next';
+import SyncButton from '../../components/SyncButton';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -461,7 +462,37 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
 
   return (
     <div className={styles.container}>
-      <Card title={t('Debug Configuration')} className={styles.card}>
+      <Card 
+        title={t('Debug Configuration')} 
+        className={styles.card}
+        extra={
+          <SyncButton
+            deviceId={device.id}
+            configType="debug"
+            configTypeName={t('Debug')}
+            onSyncSuccess={() => {
+              // 重新获取调试配置
+              const fetchConfig = async () => {
+                try {
+                  const response = await deviceConfigAPI.getDebugConfig(Number(device.id));
+                  if (response.data && response.data.config) {
+                    const config = response.data.config;
+                    setConfig({
+                      debugSwitch: config.debug_switch === 'active',
+                      drprReporting: config.drpr_reporting === 'active',
+                      atCommand: '',
+                      shellCommand: '',
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error fetching debug config:', error);
+                }
+              };
+              fetchConfig();
+            }}
+          />
+        }
+      >
         <Tabs defaultActiveKey="debugSwitch">
           <TabPane
             tab={

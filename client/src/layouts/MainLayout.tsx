@@ -81,7 +81,7 @@ const MainLayout: React.FC = () => {
       <Sider trigger={null} collapsible collapsed={collapsed}>
         <div className={styles.logo}>
           <img src="/icon.png" alt="logo" style={{ width: 28, height: 28, marginRight: 8, borderRadius: 6, background: 'rgba(255,255,255,0.1)', opacity: 0.7, display: 'inline-block', verticalAlign: 'middle' }} />
-          <span className={styles.logoTitle} style={{ display: 'inline-block', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>MANNET MGMT</span>
+          <span className={styles.logoTitle} style={{ display: 'inline-block', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>MESH MGMT</span>
         </div>
         <Menu
           theme="dark"

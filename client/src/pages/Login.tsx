@@ -111,6 +111,7 @@ const ParticleEffect: React.FC = () => {
 const Login: React.FC = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
   const navigate = useNavigate();
   const { login, register, setAuth } = useAuth();
   const [registerVisible, setRegisterVisible] = useState(false);
@@ -126,11 +127,27 @@ const Login: React.FC = () => {
     } catch (error: any) {
       if (error.response) {
         const errorMessage = error.response.data?.error || t('Invalid username or password');
-        message.error(errorMessage);
+        
+        // 根据不同的错误类型提供更友好的提示
+        if (errorMessage.includes('User not found') || errorMessage.includes('Please register first')) {
+          message.error(t('User not found. Please register first.'));
+          // 自动切换到注册标签页
+          setTimeout(() => {
+            setActiveTab('register');
+          }, 1000);
+        } else if (errorMessage.includes('Invalid password')) {
+          message.error(t('Invalid password. Please check your password.'));
+        } else if (errorMessage.includes('Invalid credentials')) {
+          message.error(t('Invalid username or password. Please check your credentials.'));
+        } else {
+          message.error(errorMessage);
+        }
       } else if (error.request) {
-        message.error(t('Server is not responding. Please try again later.'));
+        // 网络连接问题，提示用户检查网络连接
+        message.error(t('Network connection failed. Please check your internet connection.'));
       } else {
-        message.error(t('An error occurred. Please try again.'));
+        // 其他未知错误
+        message.error(t('Login failed. Please try again.'));
       }
     } finally {
       setLoading(false);
@@ -161,7 +178,7 @@ const Login: React.FC = () => {
         <div className={styles.loginForm}>
           <h1>{t('MESH Device Management Platform')}</h1>
         </div>
-        <Tabs defaultActiveKey="login" centered>
+        <Tabs activeKey={activeTab} onChange={setActiveTab} centered>
           <TabPane tab={t('Login')} key="login">
             <Form
               name="login"
@@ -199,6 +216,10 @@ const Login: React.FC = () => {
                   {t('Login')}
                 </Button>
               </Form.Item>
+              
+              <div style={{ textAlign: 'center', marginTop: '16px', color: '#666' }}>
+                {t('New user?')} <a onClick={() => setActiveTab('register')} style={{ cursor: 'pointer' }}>{t('Register here')}</a>
+              </div>
             </Form>
           </TabPane>
 

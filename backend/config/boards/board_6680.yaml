@@ -140,4 +140,4 @@ commands:
       - name: "n"
         type: "int"
         values: [0, 1, 2]
-        description: "0:关闭, 1:开启, 2:WEBUI上报" 
+        description: "0:关闭, 1:开启, 2:WEBUI上报"

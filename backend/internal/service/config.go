@@ -94,21 +94,32 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		return netConfig, nil
 
 	case ConfigCategorySecurity:
+		// 优先从DeviceConfig表中读取同步的数据
+		var deviceConfigs []model.DeviceConfig
+		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		if err == nil && len(deviceConfigs) > 0 {
+			// 将DeviceConfig数据转换为SecurityConfig格式
+			configMap := make(map[string]interface{})
+			for _, config := range deviceConfigs {
+				// 对于特定字段，尝试转换为数字类型
+				if config.Key == "encryption_algorithm" {
+					if val, err := strconv.Atoi(config.Value); err == nil {
+						configMap[config.Key] = val
+					} else {
+						configMap[config.Key] = config.Value
+					}
+				} else {
+					configMap[config.Key] = config.Value
+				}
+			}
+			return configMap, nil
+		}
+
+		// 如果没有同步数据，再尝试从SecurityConfig表获取
 		var securityConfig model.SecurityConfig
 		result := s.db.Where("device_id = ?", deviceID).First(&securityConfig)
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				// 尝试从DeviceConfig表中读取同步的数据
-				var deviceConfigs []model.DeviceConfig
-				err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
-				if err == nil && len(deviceConfigs) > 0 {
-					// 将DeviceConfig数据转换为SecurityConfig格式
-					configMap := make(map[string]interface{})
-					for _, config := range deviceConfigs {
-						configMap[config.Key] = config.Value
-					}
-					return configMap, nil
-				}
 				// 如果记录不存在，返回默认配置
 				defaultConfig := model.SecurityConfig{
 					DeviceID:            deviceID,
@@ -126,21 +137,53 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		return securityConfig, nil
 
 	case ConfigCategoryWireless:
+		// 优先从DeviceConfig表中读取同步的数据
+		var deviceConfigs []model.DeviceConfig
+		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		if err == nil && len(deviceConfigs) > 0 {
+			// 将DeviceConfig数据转换为WirelessConfig格式
+			configMap := make(map[string]interface{})
+			for _, config := range deviceConfigs {
+				// 将同步的字段映射为前端期望的字段名
+				switch config.Key {
+				case "frequency":
+					configMap["frequency"] = config.Value
+				case "bandwidth":
+					configMap["bandwidth"] = config.Value
+				case "power":
+					configMap["power"] = config.Value
+				case "frequency_hopping":
+					configMap["frequency_hopping"] = config.Value
+				case "frequency_band":
+					// 特殊处理frequency_band字段，确保它是数组格式
+					if config.Value != "" {
+						// 尝试解析JSON数组
+						var bands []string
+						if err := json.Unmarshal([]byte(config.Value), &bands); err == nil {
+							configMap["frequency_band"] = bands
+						} else {
+							// 如果不是JSON格式，直接使用原始值
+							configMap["frequency_band"] = config.Value
+						}
+					}
+				case "stored_frequency":
+					configMap["stored_frequency"] = config.Value
+				case "stored_bandwidth":
+					configMap["stored_bandwidth"] = config.Value
+				case "stored_power":
+					configMap["stored_power"] = config.Value
+				default:
+					configMap[config.Key] = config.Value
+				}
+			}
+			return configMap, nil
+		}
+
+		// 如果没有同步数据，再尝试从WirelessConfig表获取
 		var wirelessConfig model.WirelessConfig
-		err := s.db.Where("device_id = ?", deviceID).First(&wirelessConfig).Error
+		err = s.db.Where("device_id = ?", deviceID).First(&wirelessConfig).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// 尝试从DeviceConfig表中读取同步的数据
-				var deviceConfigs []model.DeviceConfig
-				err = s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
-				if err == nil && len(deviceConfigs) > 0 {
-					// 将DeviceConfig数据转换为WirelessConfig格式
-					configMap := make(map[string]interface{})
-					for _, config := range deviceConfigs {
-						configMap[config.Key] = config.Value
-					}
-					return configMap, nil
-				}
 				log.Printf("No wireless config found for device %d, returning defaults", deviceID)
 				// 返回默认的Wireless配置，不创建数据库记录
 				defaultConfig := model.WirelessConfig{
@@ -186,21 +229,43 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		return netSettingConfig, nil
 
 	case ConfigCategoryUpDown:
+		// 优先从DeviceConfig表中读取同步的数据
+		var deviceConfigs []model.DeviceConfig
+		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		if err == nil && len(deviceConfigs) > 0 {
+			// 将DeviceConfig数据转换为UpDownConfig格式
+			configMap := make(map[string]interface{})
+			for _, config := range deviceConfigs {
+				// 将tdd_config字段映射为前端期望的字段名
+				if config.Key == "tdd_config" {
+					// 将数值转换为对应的TDD配置字符串
+					var tddSetting string
+					switch config.Value {
+					case "0":
+						tddSetting = "2D3U"
+					case "1":
+						tddSetting = "3D2U"
+					case "2":
+						tddSetting = "4D1U"
+					case "3":
+						tddSetting = "1D4U"
+					default:
+						tddSetting = config.Value
+					}
+					configMap["current_setting"] = tddSetting
+					configMap["setting"] = tddSetting
+				} else {
+					configMap[config.Key] = config.Value
+				}
+			}
+			return configMap, nil
+		}
+
+		// 如果没有同步数据，再尝试从UpDownConfig表获取
 		var upDownConfig model.UpDownConfig
-		err := s.db.Where("device_id = ?", deviceID).First(&upDownConfig).Error
+		err = s.db.Where("device_id = ?", deviceID).First(&upDownConfig).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// 尝试从DeviceConfig表中读取同步的数据
-				var deviceConfigs []model.DeviceConfig
-				err = s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
-				if err == nil && len(deviceConfigs) > 0 {
-					// 将DeviceConfig数据转换为UpDownConfig格式
-					configMap := make(map[string]interface{})
-					for _, config := range deviceConfigs {
-						configMap[config.Key] = config.Value
-					}
-					return configMap, nil
-				}
 				// 返回默认的UpDown配置，不创建数据库记录
 				return model.UpDownConfig{
 					DeviceID:       deviceID,
@@ -214,21 +279,23 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		return upDownConfig, nil
 
 	case ConfigCategoryDebug:
+		// 优先从DeviceConfig表中读取同步的数据
+		var deviceConfigs []model.DeviceConfig
+		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		if err == nil && len(deviceConfigs) > 0 {
+			// 将DeviceConfig数据转换为DebugConfig格式
+			configMap := make(map[string]interface{})
+			for _, config := range deviceConfigs {
+				configMap[config.Key] = config.Value
+			}
+			return configMap, nil
+		}
+
+		// 如果没有同步数据，再尝试从DebugConfig表获取
 		var debugConfig model.DebugConfig
-		err := s.db.Where("device_id = ?", deviceID).First(&debugConfig).Error
+		err = s.db.Where("device_id = ?", deviceID).First(&debugConfig).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// 尝试从DeviceConfig表中读取同步的数据
-				var deviceConfigs []model.DeviceConfig
-				err = s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
-				if err == nil && len(deviceConfigs) > 0 {
-					// 将DeviceConfig数据转换为DebugConfig格式
-					configMap := make(map[string]interface{})
-					for _, config := range deviceConfigs {
-						configMap[config.Key] = config.Value
-					}
-					return configMap, nil
-				}
 				// 创建默认的Debug配置
 				debugConfig = model.DebugConfig{
 					DeviceID:              deviceID,
@@ -246,21 +313,23 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		return debugConfig, nil
 
 	case ConfigCategorySystem:
+		// 优先从DeviceConfig表中读取同步的数据
+		var deviceConfigs []model.DeviceConfig
+		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		if err == nil && len(deviceConfigs) > 0 {
+			// 将DeviceConfig数据转换为SystemConfig格式
+			configMap := make(map[string]interface{})
+			for _, config := range deviceConfigs {
+				configMap[config.Key] = config.Value
+			}
+			return configMap, nil
+		}
+
+		// 如果没有同步数据，再尝试从SystemConfig表获取
 		var systemConfig model.SystemConfig
-		err := s.db.Where("device_id = ?", deviceID).First(&systemConfig).Error
+		err = s.db.Where("device_id = ?", deviceID).First(&systemConfig).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// 尝试从DeviceConfig表中读取同步的数据
-				var deviceConfigs []model.DeviceConfig
-				err = s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
-				if err == nil && len(deviceConfigs) > 0 {
-					// 将DeviceConfig数据转换为SystemConfig格式
-					configMap := make(map[string]interface{})
-					for _, config := range deviceConfigs {
-						configMap[config.Key] = config.Value
-					}
-					return configMap, nil
-				}
 				// 返回默认的System配置，不创建数据库记录
 				return model.SystemConfig{
 					DeviceID:         deviceID,
@@ -289,6 +358,26 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 			}
 		}
 		return systemConfig, nil
+
+	case "device_type":
+		// 优先从DeviceConfig表中读取同步的数据
+		var deviceConfigs []model.DeviceConfig
+		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		if err == nil && len(deviceConfigs) > 0 {
+			// 将DeviceConfig数据转换为DeviceTypeConfig格式
+			configMap := make(map[string]interface{})
+			for _, config := range deviceConfigs {
+				configMap[config.Key] = config.Value
+			}
+			return configMap, nil
+		}
+
+		// 如果没有同步数据，返回默认配置
+		return map[string]interface{}{
+			"device_type":  "0",
+			"working_type": "",
+			"current_type": "0",
+		}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown config category: %s", category)
@@ -556,6 +645,53 @@ func (s *ConfigService) SaveDeviceConfigs(deviceID uint, category string, config
 		}
 		return nil
 
+	case "device_type":
+		log.Printf("Saving device type config for device %d: %+v", deviceID, configs)
+
+		// 保存到DeviceConfig表
+		for key, value := range configs {
+			deviceConfig := model.DeviceConfig{
+				DeviceID: deviceID,
+				Category: category,
+				Key:      key,
+				Value:    toString(value),
+				Type:     "string",
+			}
+
+			// 检查是否已存在
+			var existingConfig model.DeviceConfig
+			err := s.db.Where("device_id = ? AND category = ? AND key = ?", deviceID, category, key).First(&existingConfig).Error
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					// 创建新记录
+					if err := s.db.Create(&deviceConfig).Error; err != nil {
+						return fmt.Errorf("failed to create device type config: %v", err)
+					}
+				} else {
+					return fmt.Errorf("failed to check existing device type config: %v", err)
+				}
+			} else {
+				// 更新现有记录
+				if err := s.db.Model(&existingConfig).Update("value", toString(value)).Error; err != nil {
+					return fmt.Errorf("failed to update device type config: %v", err)
+				}
+			}
+		}
+
+		// 发送AT^DDTC指令设置设备类型
+		if deviceType, ok := configs["device_type"]; ok {
+			atCommand := fmt.Sprintf("AT^DDTC=%s", toString(deviceType))
+			_, err := s.deviceComm.SendATCommand(deviceID, atCommand)
+			if err != nil {
+				log.Printf("Error sending AT command for device type: %v", err)
+				// 不返回错误，因为配置已经保存到数据库
+			} else {
+				log.Printf("Successfully sent AT^DDTC command: %s", atCommand)
+			}
+		}
+
+		return nil
+
 	default:
 		return fmt.Errorf("unsupported config category: %s", category)
 	}
@@ -563,6 +699,40 @@ func (s *ConfigService) SaveDeviceConfigs(deviceID uint, category string, config
 
 // mapToStruct 将 map 转换为结构体
 func mapToStruct(m map[string]interface{}, v interface{}) error {
+	// 在JSON序列化之前处理数据类型转换
+	if _, ok := v.(*model.SecurityConfig); ok {
+		// 处理 EncryptionAlgorithm - 在JSON序列化之前转换
+		if val, ok := m["encryption_algorithm"]; ok {
+			switch v := val.(type) {
+			case float64:
+				m["encryption_algorithm"] = int(v)
+			case int:
+				m["encryption_algorithm"] = v
+			case string:
+				// 尝试将字符串转换为数字
+				if intVal, err := strconv.Atoi(v); err == nil {
+					m["encryption_algorithm"] = intVal
+				} else {
+					// 如果无法转换为数字，尝试按名称匹配
+					switch strings.ToLower(v) {
+					case "none", "0":
+						m["encryption_algorithm"] = 0
+					case "snow3g", "snow", "1":
+						m["encryption_algorithm"] = 1
+					case "aes", "2":
+						m["encryption_algorithm"] = 2
+					case "zuc", "3":
+						m["encryption_algorithm"] = 3
+					default:
+						return fmt.Errorf("invalid encryption_algorithm value: %s", v)
+					}
+				}
+			default:
+				return fmt.Errorf("invalid type for encryption_algorithm: %T", val)
+			}
+		}
+	}
+
 	// 特殊处理 WirelessConfig 的 frequency_band 字段
 	if wirelessConfig, ok := v.(*model.WirelessConfig); ok {
 		if val, ok := m["frequency_band"]; ok {
@@ -594,39 +764,6 @@ func mapToStruct(m map[string]interface{}, v interface{}) error {
 	// 将 JSON 字节解析为结构体
 	if err := json.Unmarshal(jsonBytes, v); err != nil {
 		return fmt.Errorf("failed to unmarshal JSON to struct: %v", err)
-	}
-
-	// 特殊处理 SecurityConfig 的字段类型
-	if securityConfig, ok := v.(*model.SecurityConfig); ok {
-		// 处理 EncryptionAlgorithm
-		if val, ok := m["encryption_algorithm"]; ok {
-			switch v := val.(type) {
-			case float64:
-				securityConfig.EncryptionAlgorithm = int(v)
-			case int:
-				securityConfig.EncryptionAlgorithm = v
-			case string:
-				switch v {
-				case "none":
-					securityConfig.EncryptionAlgorithm = 0
-				case "snow3g":
-					securityConfig.EncryptionAlgorithm = 1
-				case "aes":
-					securityConfig.EncryptionAlgorithm = 2
-				case "zuc":
-					securityConfig.EncryptionAlgorithm = 3
-				default:
-					return fmt.Errorf("invalid encryption_algorithm value: %s", v)
-				}
-			default:
-				return fmt.Errorf("invalid type for encryption_algorithm: %T", val)
-			}
-		}
-
-		// 处理 EncryptionKey
-		if val, ok := m["encryption_key"]; ok {
-			securityConfig.EncryptionKey = val.(string)
-		}
 	}
 
 	return nil
@@ -964,8 +1101,8 @@ func toString(value interface{}) string {
 
 // IsValidCommand 检查命令是否有效
 func (s *ConfigService) IsValidCommand(command string) bool {
-	// 从 board_1.0.yaml 中读取命令列表
-	commands, err := s.loadBoardCommands("1.0")
+	// 从 board_1.0_star.yaml 中读取命令列表
+	commands, err := s.loadBoardCommands("1.0_star")
 	if err != nil {
 		return false
 	}
@@ -977,8 +1114,8 @@ func (s *ConfigService) IsValidCommand(command string) bool {
 
 // ValidateCommandParameters 验证命令参数
 func (s *ConfigService) ValidateCommandParameters(command string, parameters map[string]interface{}) error {
-	// 从 board_1.0.yaml 中读取命令定义
-	commands, err := s.loadBoardCommands("1.0")
+	// 从 board_1.0_star.yaml 中读取命令定义
+	commands, err := s.loadBoardCommands("1.0_star")
 	if err != nil {
 		return err
 	}
@@ -1043,8 +1180,8 @@ func (s *ConfigService) ValidateCommandParameters(command string, parameters map
 
 // ExecuteCommand 执行命令
 func (s *ConfigService) ExecuteCommand(deviceID uint, command string, parameters map[string]interface{}) error {
-	// 从 board_1.0.yaml 中读取命令定义
-	commands, err := s.loadBoardCommands("1.0")
+	// 从 board_1.0_star.yaml 中读取命令定义
+	commands, err := s.loadBoardCommands("1.0_star")
 	if err != nil {
 		return err
 	}

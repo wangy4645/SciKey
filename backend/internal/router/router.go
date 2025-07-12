@@ -84,6 +84,8 @@ func SetupRouter() *gin.Engine {
 		api.POST("/devices/:id/at/command", deviceHandler.SendATCommandByName)
 		api.GET("/devices/:id/commands", deviceHandler.GetAvailableCommands)
 		api.POST("/devices/:id/sync-config", deviceHandler.SyncDeviceConfig)
+		api.POST("/devices/:id/sync-config/:type", deviceHandler.SyncDeviceConfigByType)
+		api.POST("/devices/:id/reboot", deviceHandler.RebootDevice)
 		api.POST("/devices/:id/login", deviceHandler.LoginDevice)
 		api.GET("/devices/:id/key", deviceHandler.GetKey)
 		api.POST("/devices/:id/key", deviceHandler.SetKey)
@@ -142,6 +144,10 @@ func SetupRouter() *gin.Engine {
 		// Debug config routes
 		api.GET("/devices/:id/configs/debug", configHandler.GetDebugConfig)
 		api.PUT("/devices/:id/configs/debug", configHandler.UpdateDebugConfig)
+
+		// Device Type config routes
+		api.GET("/devices/:id/configs/device_type", configHandler.GetDeviceTypeConfig)
+		api.PUT("/devices/:id/configs/device_type", configHandler.UpdateDeviceTypeConfig)
 
 		// DRPR Reporting routes
 		api.POST("/devices/:id/debug/drpr", deviceHandler.SetDrprReporting)

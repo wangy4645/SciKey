@@ -1,0 +1,83 @@
+.container {
+  padding: 0;
+}
+
+.card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.warningText {
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+  color: #d46b08;
+  font-size: 14px;
+}
+
+.currentConfig {
+  margin-bottom: 24px;
+}
+
+.currentConfig strong {
+  color: #262626;
+  font-size: 16px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.settingValue {
+  margin-top: 24px;
+}
+
+.settingValue strong {
+  color: #262626;
+  font-size: 16px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.form {
+  margin-top: 16px;
+}
+
+.form :global(.ant-form-item) {
+  margin-bottom: 24px;
+}
+
+.form :global(.ant-form-item-label) {
+  font-weight: 500;
+  color: #262626;
+}
+
+.form :global(.ant-select) {
+  width: 100%;
+}
+
+.form :global(.ant-btn) {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 6px;
+}
+
+.form :global(.ant-btn-primary) {
+  background: #1677ff;
+  border-color: #1677ff;
+}
+
+.form :global(.ant-btn-primary:hover) {
+  background: #4096ff;
+  border-color: #4096ff;
+}
+
+.form :global(.ant-descriptions-item-label) {
+  font-weight: 500;
+  color: #595959;
+}
+
+.form :global(.ant-tag) {
+  border-radius: 4px;
+  font-weight: 500;
+} 

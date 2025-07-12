@@ -28,6 +28,7 @@ import {
   SyncOutlined,
   CheckCircleOutlined,
   WarningOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { ClusterOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -46,12 +47,27 @@ const Devices: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [syncLoading, setSyncLoading] = useState<number | null>(null);
+  const [rebootLoading, setRebootLoading] = useState<number | null>(null);
   const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
   const [form] = Form.useForm();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { devices, loading } = useSelector((state: RootState) => state.device);
+  
+  const getBoardTypeDisplayName = (type: string) => {
+    switch (type) {
+      case 'board_1.0':
+      case 'board_1.0_star':
+        return t('Board 1.0 Star');
+      case 'board_1.0_mesh':
+        return t('Board 1.0 Mesh');
+      case 'board_6680':
+        return t('Board 6680');
+      default:
+        return type?.toUpperCase() || t('Unknown');
+    }
+  };
 
   useEffect(() => {
     dispatch(fetchDevices());
@@ -82,10 +98,19 @@ const Devices: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
+    console.log('handleDelete called with id:', id);
     try {
+      console.log('Dispatching deleteDevice action...');
       await dispatch(deleteDevice(id));
+      console.log('deleteDevice action completed successfully');
       message.success(t('Device deleted successfully'));
+      
+      // Force refresh the device list to ensure UI is updated
+      console.log('Refreshing device list...');
+      await dispatch(fetchDevices());
+      console.log('Device list refreshed');
     } catch (error) {
+      console.error('Error in handleDelete:', error);
       message.error(t('Failed to delete device'));
     }
   };
@@ -179,6 +204,24 @@ const Devices: React.FC = () => {
     setSyncResult(null);
   };
 
+  const handleReboot = async (deviceId: number) => {
+    try {
+      setRebootLoading(deviceId);
+      
+      const response = await deviceConfigAPI.rebootDevice(deviceId);
+      
+      message.success(t('Device reboot command sent successfully'));
+      
+      // 刷新设备列表
+      dispatch(fetchDevices());
+    } catch (error: any) {
+      console.error('Failed to reboot device:', error);
+      message.error(t('Failed to reboot device'));
+    } finally {
+      setRebootLoading(null);
+    }
+  };
+
   const columns = [
     {
       title: t('Name'),
@@ -212,7 +255,7 @@ const Devices: React.FC = () => {
       key: 'board_type',
       render: (boardType: string) => (
         <Tag color="blue">
-          {boardType?.toUpperCase() || t('Unknown')}
+          {getBoardTypeDisplayName(boardType)}
         </Tag>
       ),
     },
@@ -273,11 +316,33 @@ const Devices: React.FC = () => {
               }}
             />
           </Tooltip>
+          {/* 只对支持重启的板卡显示重启按钮 */}
+          {record.board_type === 'board_1.0_mesh' && (
+            <Popconfirm
+              title={t('Reboot Device')}
+              description={t('Are you sure you want to reboot this device?')}
+              onConfirm={() => handleReboot(record.id)}
+              okText={t('Reboot')}
+              cancelText={t('Cancel')}
+              okType="default"
+            >
+              <Tooltip title={t('Reboot Device')}>
+                <Button
+                  type="text"
+                  icon={<ReloadOutlined />}
+                  loading={rebootLoading === record.id}
+                  danger
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
           <Popconfirm
-            title={t('Are you sure you want to delete this device?')}
+            title={t('Delete Device')}
+            description={t('This action cannot be undone.')}
             onConfirm={() => handleDelete(record.id)}
-            okText={t('Yes')}
-            cancelText={t('No')}
+            okText={t('Delete')}
+            cancelText={t('Cancel')}
+            okType="danger"
           >
             <Tooltip title={t('Delete')}>
               <Button
@@ -357,7 +422,7 @@ const Devices: React.FC = () => {
               <div>
                 <h4>{t('Sync Summary')}:</h4>
                 <p><strong>{t('Device ID')}:</strong> {syncResult.device_id}</p>
-                <p><strong>{t('Board Type')}:</strong> {syncResult.board_type}</p>
+                <p><strong>{t('Board Type')}:</strong> {getBoardTypeDisplayName(syncResult.board_type)}</p>
                 <p><strong>{t('Total Commands')}:</strong> {syncResult.total_commands}</p>
                 <p><strong>{t('Success Count')}:</strong> {syncResult.success_count}</p>
                 
@@ -373,7 +438,7 @@ const Devices: React.FC = () => {
                     <div style={{ maxHeight: '300px', overflow: 'auto' }}>
                       {Object.entries(syncResult.sync_results || {}).map(([command, result]: [string, any]) => (
                         <div key={command} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #d9d9d9', borderRadius: '4px' }}>
-                          <h5>{command}</h5>
+                          <h5>{command.replace('get_', '').replace(/_/g, ' ')}</h5>
                           <p><strong>{t('Status')}:</strong> {result.success ? '✅ ' + t('Success') : '❌ ' + t('Failed')}</p>
                           {result.error && (
                             <p><strong>{t('Error')}:</strong> {
@@ -382,13 +447,81 @@ const Devices: React.FC = () => {
                                 : result.error
                             }</p>
                           )}
-                          {result.response && <p><strong>{t('Response')}:</strong> {result.response}</p>}
                           {result.config && (
                             <div>
                               <strong>{t('Config')}:</strong>
-                              <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '5px' }}>
-                                {JSON.stringify(result.config, null, 2)}
-                              </pre>
+                              <div style={{ fontSize: '12px', background: '#f5f5f5', padding: '8px', borderRadius: '4px', marginTop: '4px' }}>
+                                {/* 过滤和优化配置显示 */}
+                                {(() => {
+                                  const config = result.config;
+                                  const hiddenFields = [
+                                    'raw_response', 'tdd_config', 'stored_bandwidth', 'stored_frequency', 
+                                    'stored_power', 'working_type', 'access_state_enabled', 'master_ip', 
+                                    'slave_ip', 'status', 'message', 'note'
+                                  ];
+                                  
+                                  const validConfig = Object.entries(config)
+                                    .filter(([key, value]) => 
+                                      !hiddenFields.includes(key) && 
+                                      value !== '' && 
+                                      value !== null && 
+                                      value !== undefined
+                                    )
+                                    .sort(([keyA], [keyB]) => {
+                                      const priorityOrder = [
+                                        'ip', 'device_type', 'encryption_algorithm', 'current_setting',
+                                        'frequency_band', 'bandwidth', 'frequency', 'power',
+                                        'frequency_hopping', 'slave_max_tx_power', 'access_state',
+                                        'all_radio_param_report', 'radio_param_report', 'band_config'
+                                      ];
+                                      const indexA = priorityOrder.indexOf(keyA);
+                                      const indexB = priorityOrder.indexOf(keyB);
+                                      if (indexA === -1 && indexB === -1) return 0;
+                                      if (indexA === -1) return 1;
+                                      if (indexB === -1) return -1;
+                                      return indexA - indexB;
+                                    });
+
+                                  if (validConfig.length === 0) {
+                                    return <span style={{ color: '#999' }}>No valid configuration data</span>;
+                                  }
+
+                                  return (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center' }}>
+                                      {validConfig.map(([key, value]) => (
+                                        <React.Fragment key={key}>
+                                          <span style={{ fontWeight: 600, color: '#444' }}>
+                                            {key === 'device_type' ? 'Device Type' :
+                                             key === 'encryption_algorithm' ? 'Encryption' :
+                                             key === 'current_setting' ? 'TDD Setting' :
+                                             key === 'frequency_band' ? 'Frequency Band' :
+                                             key === 'frequency_hopping' ? 'Frequency Hopping' :
+                                             key === 'slave_max_tx_power' ? 'Max TX Power' :
+                                             key === 'access_state' ? 'Access State' :
+                                             key === 'all_radio_param_report' ? 'Radio Report' :
+                                             key === 'radio_param_report' ? 'Param Report' :
+                                             key === 'band_config' ? 'Band Config' :
+                                             key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}:
+                                          </span>
+                                          <span>
+                                            {key === 'encryption_algorithm' ? (
+                                              <span>
+                                                {value === '0' || value === 0 ? 'NONE'
+                                                  : value === '1' || value === 1 ? 'SNOW3G'
+                                                  : value === '2' || value === 2 ? 'AES'
+                                                  : value === '3' || value === 3 ? 'ZUC'
+                                                  : String(value)}
+                                              </span>
+                                            ) : (
+                                              Array.isArray(value) ? value.join(', ') : String(value)
+                                            )}
+                                          </span>
+                                        </React.Fragment>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -414,7 +547,7 @@ const Devices: React.FC = () => {
           onFinish={handleSubmit}
           initialValues={{
             type: 'slave',
-            board_type: 'board_1.0'
+            board_type: 'board_1.0_star'
           }}
         >
           <Form.Item
@@ -461,7 +594,8 @@ const Devices: React.FC = () => {
             rules={[{ required: true, message: t('Please select board type!') }]}
           >
             <Select>
-              <Option value="board_1.0">Board 1.0</Option>
+              <Option value="board_1.0_star">Board 1.0 Star</Option>
+              <Option value="board_1.0_mesh">Board 1.0 Mesh</Option>
               <Option value="board_6680">Board 6680</Option>
             </Select>
           </Form.Item>

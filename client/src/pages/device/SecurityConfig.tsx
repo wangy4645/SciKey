@@ -26,6 +26,7 @@ import {
 import styles from './SecurityConfig.module.css';
 import type { SecurityConfig as SecurityConfigType } from './types';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
+import SyncButton from '../../components/SyncButton';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -86,6 +87,13 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
         const response = await deviceConfigAPI.getSecurityConfig(Number(deviceId));
         if (response && response.data && response.data.config) {
           const configData = response.data.config as SecurityConfigType;
+          
+          // 检查是否是执行状态响应（没有具体配置数据）
+          if (configData.status === 'command_executed' && configData.note) {
+            console.log('Device returned execution status only:', configData.note);
+            message.info('Device command executed successfully, but no configuration data was returned. This may indicate that the device does not support this command or requires additional setup.');
+            return;
+          }
           
           // 将 security_scan_period 从秒转换为小时
           if (configData.security_scan_period) {
@@ -270,11 +278,15 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
         </div>
         <div className={styles.currentKeyValue}>
           {(() => {
+            console.log('encryption_algorithm value:', config.encryption_algorithm, 'type:', typeof config.encryption_algorithm);
             const algo = Number(config.encryption_algorithm);
-            return algo === 0 ? t('None') :
+            console.log('converted algo:', algo, 'type:', typeof algo);
+            const result = algo === 0 ? t('None') :
               algo === 1 ? 'SNOW3G' :
               algo === 2 ? 'AES' :
               algo === 3 ? 'ZUC' : t('Not set');
+            console.log('display result:', result);
+            return result;
           })()}
         </div>
       </div>
@@ -485,64 +497,95 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
 
   return (
     <div className={styles.container}>
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={config}
-        onFinish={handleSubmit}
+      <Card 
+        title={t('Security Configuration')} 
+        className={styles.card}
+        extra={
+          <SyncButton
+            deviceId={Number(deviceId)}
+            configType="security"
+            configTypeName={t('Security')}
+            onSyncSuccess={() => {
+              // 重新获取安全配置
+              const fetchConfig = async () => {
+                try {
+                  setLoading(true);
+                  const response = await deviceConfigAPI.getSecurityConfig(Number(deviceId));
+                  if (response && response.data && response.data.config) {
+                    const configData = response.data.config as SecurityConfigType;
+                    setConfig(configData);
+                    form.setFieldsValue(configData);
+                  }
+                } catch (error) {
+                  console.error('Error fetching security config:', error);
+                } finally {
+                  setLoading(false);
+                }
+              };
+              fetchConfig();
+            }}
+          />
+        }
       >
-        <Tabs defaultActiveKey="encryption">
-          <TabPane
-            tab={
-              <span>
-                <LockOutlined />
-                {t('Encryption')}
-              </span>
-            }
-            key="encryption"
-          >
-            {renderEncryptionSettings()}
-          </TabPane>
-          <TabPane
-            tab={
-              <span>
-                <KeyOutlined />
-                {t('Key')}
-              </span>
-            }
-            key="key"
-          >
-            {renderKeySettings()}
-          </TabPane>
-        </Tabs>
-        <Divider />
-        <Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              {t('Save Configuration')}
-            </Button>
-            <Button onClick={async () => {
-              form.resetFields();
-              form.setFieldsValue({ encryption_algorithm: 0 });
-              setConfig(prev => ({ ...prev, encryption_algorithm: 0 }));
-              setKey('');
-              setCurrentKey('');
-              // 清空表单中的encryption_key字段
-              form.setFieldsValue({ encryption_key: '' });
-              try {
-                // 重置时发送AT+CONFIG指令，将encryption_key设为空
-                const atCommand = 'AT+CONFIG=0,0,0,0,0,';
-                await deviceConfigAPI.sendATCommand(Number(deviceId), atCommand);
-                message.success(t('Reset completed'));
-              } catch (error) {
-                message.error(t('Reset completed but failed to send AT command'));
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={config}
+          onFinish={handleSubmit}
+        >
+          <Tabs defaultActiveKey="encryption">
+            <TabPane
+              tab={
+                <span>
+                  <LockOutlined />
+                  {t('Encryption')}
+                </span>
               }
-            }}>
-              {t('Reset')}
-            </Button>
-          </Space>
-        </Form.Item>
-      </Form>
+              key="encryption"
+            >
+              {renderEncryptionSettings()}
+            </TabPane>
+            <TabPane
+              tab={
+                <span>
+                  <KeyOutlined />
+                  {t('Key')}
+                </span>
+              }
+              key="key"
+            >
+              {renderKeySettings()}
+            </TabPane>
+          </Tabs>
+          <Divider />
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" loading={loading}>
+                {t('Save Configuration')}
+              </Button>
+              <Button onClick={async () => {
+                form.resetFields();
+                form.setFieldsValue({ encryption_algorithm: 0 });
+                setConfig(prev => ({ ...prev, encryption_algorithm: 0 }));
+                setKey('');
+                setCurrentKey('');
+                // 清空表单中的encryption_key字段
+                form.setFieldsValue({ encryption_key: '' });
+                try {
+                  // 重置时发送AT+CONFIG指令，将encryption_key设为空
+                  const atCommand = 'AT+CONFIG=0,0,0,0,0,';
+                  await deviceConfigAPI.sendATCommand(Number(deviceId), atCommand);
+                  message.success(t('Reset completed'));
+                } catch (error) {
+                  message.error(t('Reset completed but failed to send AT command'));
+                }
+              }}>
+                {t('Reset')}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Card>
     </div>
   );
 };

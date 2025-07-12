@@ -17,6 +17,7 @@ import styles from './UpDownConfig.module.css';
 import { Device } from '../../types';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
 import { useTranslation } from 'react-i18next';
+import SyncButton from '../../components/SyncButton';
 
 const { Option } = Select;
 
@@ -127,7 +128,35 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
 
   return (
     <div className={styles.container}>
-      <Card title={t('TDD Configuration')} className={styles.card}>
+      <Card 
+        title={t('TDD Configuration')} 
+        className={styles.card}
+        extra={
+          <SyncButton
+            deviceId={device.id}
+            configType="up_down"
+            configTypeName={t('TDD Configuration')}
+            onSyncSuccess={() => {
+              // 重新获取TDD配置
+              const fetchConfig = async () => {
+                try {
+                  const response = await deviceConfigAPI.getUpDownConfig(Number(device.id));
+                  if (response && response.data && response.data.config) {
+                    const configData = response.data.config;
+                    setConfig({
+                      currentSetting: configData.current_setting || configData.setting || '',
+                      setting: configData.setting || '',
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error fetching UP-DOWN config:', error);
+                }
+              };
+              fetchConfig();
+            }}
+          />
+        }
+      >
         <div className={styles.warningText}>
           <InfoCircleOutlined style={{ marginRight: 8 }} />
           <strong>NOTE:&nbsp;&nbsp;</strong>{t('Please restart device when setup is completed')}

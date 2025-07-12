@@ -25,6 +25,7 @@ func init() {
 		&model.Device{},
 		&model.DeviceLog{},
 		&model.CommandLog{},
+		&model.ATCommandMapping{},
 		&model.Node{},
 		&model.Config{},
 		&model.DeviceConfig{},
@@ -73,6 +74,11 @@ func init() {
 
 	// 为现有设备设置默认的 board_type
 	db.Model(&model.Device{}).Where("board_type = ?", "").Updates(map[string]interface{}{
-		"board_type": "board_1.0",
+		"board_type": "board_1.0_star",
+	})
+
+	// 更新旧的 board_type 为新的文件名
+	db.Model(&model.Device{}).Where("board_type = ?", "board_1.0").Updates(map[string]interface{}{
+		"board_type": "board_1.0_star",
 	})
 }

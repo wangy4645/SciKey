@@ -19,6 +19,9 @@ export interface SecurityConfig {
   security_alerts: boolean;
   security_updates: boolean;
   security_scan_period: number;
+  // 同步状态相关字段
+  status?: string;
+  note?: string;
 }
 
 export interface KeyConfig {
@@ -30,4 +33,7 @@ export interface WirelessConfig {
   bandwidth: string;
   buildingChain: string;
   frequencyHopping: boolean;
+  // 同步状态相关字段
+  status?: string;
+  note?: string;
 } 

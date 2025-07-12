@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import type { Device } from '../../types';
 import { deviceAPI } from '../../services/api';
+import SyncButton from '../../components/SyncButton';
 import styles from './NetworkStatus.module.css';
 
 interface NetworkStateConfigProps {
@@ -124,14 +125,22 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
             title={t('Connection Status')} 
             className={styles.card}
             extra={
-              <Button 
-                type="primary" 
-                icon={<WifiOutlined />} 
-                onClick={handleRefresh}
-                loading={fetching}
-              >
-                {t('Refresh')}
-              </Button>
+              <Space>
+                <SyncButton
+                  deviceId={device.id}
+                  configType="network_status"
+                  configTypeName={t('Network Status')}
+                  onSyncSuccess={fetchNetworkStatus}
+                />
+                <Button 
+                  type="primary" 
+                  icon={<WifiOutlined />} 
+                  onClick={handleRefresh}
+                  loading={fetching}
+                >
+                  {t('Refresh')}
+                </Button>
+              </Space>
             }
           >
             <Row gutter={[16, 16]}>

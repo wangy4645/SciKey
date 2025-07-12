@@ -28,6 +28,7 @@ import {
 import styles from './WirelessConfig.module.css';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
 import { useTranslation } from 'react-i18next';
+import SyncButton from '../../components/SyncButton';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -73,23 +74,66 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
           const configData = response.data.config;
           console.log('Wireless config data:', configData);
           
-          // 确保frequency_band是数组
-          const frequencyBand = Array.isArray(configData.frequency_band) 
-            ? configData.frequency_band 
-            : [];
+          // 检查是否是执行状态响应（没有具体配置数据）
+          if (configData.status === 'command_executed' && configData.note) {
+            console.log('Device returned execution status only:', configData.note);
+            // 显示提示信息
+            message.info('Device command executed successfully, but no configuration data was returned. This may indicate that the device does not support this command or requires additional setup.');
+            return;
+          }
+          
+          // 映射同步的配置字段到前端显示字段
+          // 从同步的配置中提取值
+          const frequency = configData.frequency || configData.stored_frequency;
+          const bandwidth = configData.bandwidth || configData.stored_bandwidth;
+          const power = configData.power || configData.stored_power;
+          const frequencyHopping = configData.frequency_hopping === 'true' || configData.frequency_hopping === '1';
+          
+          // 优先使用同步的频段配置，如果没有则根据频率值推断
+          let frequencyBand: string[] = [];
+          if (configData.frequency_band && Array.isArray(configData.frequency_band)) {
+            // 使用同步的频段配置
+            frequencyBand = configData.frequency_band;
+            console.log('Using synced frequency_band:', frequencyBand);
+          } else if (frequency) {
+            // 根据频率值推断频段（备用逻辑）
+            const freqNum = parseInt(frequency);
+            if (freqNum >= 8060 && freqNum <= 9600) {
+              frequencyBand = ['800M'];
+            } else if (freqNum >= 14400 && freqNum <= 15000) {
+              frequencyBand = ['1.4G'];
+            } else if (freqNum >= 24000 && freqNum <= 24814) {
+              frequencyBand = ['2.4G'];
+            }
+            console.log('Inferred frequency_band from frequency:', frequencyBand);
+          }
+          
+          // 根据带宽值确定带宽显示
+          let bandwidthDisplay = '1.4M';
+          if (bandwidth) {
+            const bwNum = parseInt(bandwidth);
+            switch (bwNum) {
+              case 0: bandwidthDisplay = '1.4M'; break;
+              case 1: bandwidthDisplay = '3M'; break;
+              case 2: bandwidthDisplay = '5M'; break;
+              case 3: bandwidthDisplay = '10M'; break;
+              case 5: bandwidthDisplay = '20M'; break;
+              default: bandwidthDisplay = '1.4M';
+            }
+          }
           
           // 设置当前设备配置（用于显示Now Configuration）
           setCurrentFrequencyBand(frequencyBand);
-          setCurrentBandwidth(configData.bandwidth || '1.4M');
+          setCurrentBandwidth(bandwidthDisplay);
           setCurrentBuildingChain(configData.building_chain || '');
-          setCurrentFrequencyHopping(configData.frequency_hopping || false);
+          setCurrentFrequencyHopping(frequencyHopping);
           
-          // 设置表单配置（Setting Value保持为空，等待用户重新选择）
+          // 设置表单配置（同步当前设备状态）
           setConfig({
             frequencyBand: [], // 保持为空，不显示勾选状态
             bandwidth: '1.4M', // 保持默认值，不显示当前配置
             buildingChain: '', // 保持为空，不显示当前配置
-            frequencyHopping: false, // 保持默认值，不显示当前配置
+            frequencyHopping: frequencyHopping, // 同步当前频跳状态
           });
           
           console.log('Set wireless config:', {
@@ -98,6 +142,8 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
             currentBuildingChain: configData.building_chain || '',
             currentFrequencyHopping: configData.frequency_hopping || false,
             configFrequencyBand: [], // Setting Value保持为空
+            rawFrequencyHopping: configData.frequency_hopping,
+            parsedFrequencyHopping: frequencyHopping,
           });
         } else {
           console.log('No wireless config data found, using defaults');
@@ -419,7 +465,74 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
 
   return (
     <div className={styles.container}>
-      <Card title={t('Wireless Configuration')} className={styles.card}>
+      <Card 
+        title={t('Wireless Configuration')} 
+        className={styles.card}
+        extra={
+          <SyncButton
+            deviceId={device.id}
+            configType="wireless"
+            configTypeName={t('Wireless')}
+            onSyncSuccess={() => {
+              // 重新获取无线配置
+              const fetchConfig = async () => {
+                try {
+                  const response = await deviceConfigAPI.getWirelessConfig(Number(device.id));
+                  if (response && response.data && response.data.config) {
+                    const configData = response.data.config;
+                    // 更新配置状态
+                    const frequency = configData.frequency || configData.stored_frequency;
+                    const bandwidth = configData.bandwidth || configData.stored_bandwidth;
+                    const frequencyHopping = configData.frequency_hopping === 'true' || configData.frequency_hopping === '1';
+                    
+                    let frequencyBand: string[] = [];
+                    if (configData.frequency_band && Array.isArray(configData.frequency_band)) {
+                      frequencyBand = configData.frequency_band;
+                    } else if (frequency) {
+                      const freqNum = parseInt(frequency);
+                      if (freqNum >= 8060 && freqNum <= 9600) {
+                        frequencyBand = ['800M'];
+                      } else if (freqNum >= 14400 && freqNum <= 15000) {
+                        frequencyBand = ['1.4G'];
+                      } else if (freqNum >= 24000 && freqNum <= 24814) {
+                        frequencyBand = ['2.4G'];
+                      }
+                    }
+                    
+                    let bandwidthDisplay = '1.4M';
+                    if (bandwidth) {
+                      const bwNum = parseInt(bandwidth);
+                      switch (bwNum) {
+                        case 0: bandwidthDisplay = '1.4M'; break;
+                        case 1: bandwidthDisplay = '3M'; break;
+                        case 2: bandwidthDisplay = '5M'; break;
+                        case 3: bandwidthDisplay = '10M'; break;
+                        case 5: bandwidthDisplay = '20M'; break;
+                        default: bandwidthDisplay = '1.4M';
+                      }
+                    }
+                    
+                    setCurrentFrequencyBand(frequencyBand);
+                    setCurrentBandwidth(bandwidthDisplay);
+                    setCurrentBuildingChain(configData.building_chain || '');
+                    setCurrentFrequencyHopping(frequencyHopping);
+                    
+                    setConfig({
+                      frequencyBand: [],
+                      bandwidth: '1.4M',
+                      buildingChain: '',
+                      frequencyHopping: frequencyHopping,
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error fetching wireless config:', error);
+                }
+              };
+              fetchConfig();
+            }}
+          />
+        }
+      >
         <Tabs defaultActiveKey="frequencyBand">
           <TabPane
             tab={

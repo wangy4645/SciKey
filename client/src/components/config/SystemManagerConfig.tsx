@@ -1,9 +1,34 @@
-import React from 'react';
-import { Form, Input, Select, Switch, Card, Row, Col, Button, Space, TimePicker } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { Device } from '../../types';
+import React, { useState } from 'react';
+import {
+  Card,
+  Form,
+  Input,
+  Switch,
+  Button,
+  Row,
+  Col,
+  Divider,
+  message,
+  Tabs,
+  Table,
+  Space,
+  InputNumber,
+  Select,
+  Progress,
+  Tag,
+  TimePicker,
+} from 'antd';
+import {
+  SettingOutlined,
+  CloudUploadOutlined,
+  ClockCircleOutlined,
+  SafetyOutlined,
+} from '@ant-design/icons';
 import styles from './SystemManagerConfig.module.css';
+import { Device } from '../../types';
+import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
+import { deviceConfigAPI } from '../../services/deviceConfigAPI';
 
 const { Option } = Select;
 const { RangePicker } = TimePicker;
@@ -21,6 +46,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
+  const [config, setConfig] = useState<any>(null);
 
   const handleSubmit = async (values: any) => {
     onSave(values);
@@ -34,7 +60,10 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 
   return (
     <div className={styles.container}>
-      <Card title={t('System Manager Settings')} className={styles.card}>
+      <Card
+        title={t('System Manager Settings')}
+        className={styles.card}
+      >
         <Form
           form={form}
           layout="vertical"

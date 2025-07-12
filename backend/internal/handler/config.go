@@ -458,3 +458,43 @@ func (h *ConfigHandler) GetDeviceConfig(c *gin.Context) {
 		"config": config,
 	})
 }
+
+// GetDeviceTypeConfig handles GET /api/devices/:id/configs/device_type
+func (h *ConfigHandler) GetDeviceTypeConfig(c *gin.Context) {
+	deviceID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+
+	config, err := h.configService.GetDeviceConfigs(uint(deviceID), "device_type")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"config": config})
+}
+
+// UpdateDeviceTypeConfig handles PUT /api/devices/:id/configs/device_type
+func (h *ConfigHandler) UpdateDeviceTypeConfig(c *gin.Context) {
+	deviceID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+
+	var config map[string]interface{}
+	if err := c.ShouldBindJSON(&config); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Printf("Updating device type config for device %d: %+v", deviceID, config)
+
+	if err := h.configService.SaveDeviceConfigs(uint(deviceID), "device_type", config); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Device type configuration updated successfully"})
+}
