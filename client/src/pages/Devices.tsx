@@ -19,6 +19,7 @@ import {
   Col,
   Popconfirm,
   Typography,
+  Divider,
 } from 'antd';
 import {
   PlusOutlined,
@@ -62,8 +63,8 @@ const Devices: React.FC = () => {
         return t('Board 1.0 Star');
       case 'board_1.0_mesh':
         return t('Board 1.0 Mesh');
-      case 'board_6680':
-        return t('Board 6680');
+      case 'board_2.0_star':
+        return t('Board 2.0 Star');
       default:
         return type?.toUpperCase() || t('Unknown');
     }
@@ -98,19 +99,13 @@ const Devices: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    console.log('handleDelete called with id:', id);
     try {
-      console.log('Dispatching deleteDevice action...');
       await dispatch(deleteDevice(id));
-      console.log('deleteDevice action completed successfully');
       message.success(t('Device deleted successfully'));
       
       // Force refresh the device list to ensure UI is updated
-      console.log('Refreshing device list...');
       await dispatch(fetchDevices());
-      console.log('Device list refreshed');
     } catch (error) {
-      console.error('Error in handleDelete:', error);
       message.error(t('Failed to delete device'));
     }
   };
@@ -139,13 +134,10 @@ const Devices: React.FC = () => {
   };
 
   const handleConfig = (id: number) => {
-    console.log('handleConfig called with id:', id);
     if (!id) {
-      console.error('Invalid device ID in handleConfig');
       message.error(t('Invalid device ID'));
       return;
     }
-    console.log('Navigating to device config page with id:', id);
     navigate(`/devices/${id}/config`);
   };
 
@@ -191,7 +183,6 @@ const Devices: React.FC = () => {
         }));
       }
     } catch (error: any) {
-      console.error('Failed to sync device configuration:', error);
       message.error(t('Failed to sync device configuration'));
       setSyncResult({ error: error.message || t('Unknown') });
     } finally {
@@ -215,7 +206,6 @@ const Devices: React.FC = () => {
       // 刷新设备列表
       dispatch(fetchDevices());
     } catch (error: any) {
-      console.error('Failed to reboot device:', error);
       message.error(t('Failed to reboot device'));
     } finally {
       setRebootLoading(null);
@@ -401,7 +391,7 @@ const Devices: React.FC = () => {
 
       {/* 同步配置结果模态框 */}
       <Modal
-        title={t('Configuration Sync Result')}
+        title={<span style={{fontWeight:700,fontSize:20}}>{t('Configuration Sync Result')}</span>}
         open={syncModalVisible}
         onCancel={handleSyncModalClose}
         footer={[
@@ -410,48 +400,51 @@ const Devices: React.FC = () => {
           </Button>
         ]}
         width={800}
+        bodyStyle={{ background: '#f7f9fa', borderRadius: 12 }}
       >
         {syncResult && (
           <div>
             {syncResult.error ? (
-              <div style={{ color: 'red' }}>
-                <h4>{t('Sync Failed')}:</h4>
+              <div style={{ color: '#ff4d4f', background: '#fff1f0', borderRadius: 8, padding: 16, marginBottom: 16, boxShadow: '0 2px 8px #ffccc7' }}>
+                <h3 style={{ color: '#cf1322', fontWeight: 700, marginBottom: 8 }}>❌ {t('Sync Failed')}</h3>
                 <p>{syncResult.error}</p>
               </div>
             ) : (
               <div>
-                <h4>{t('Sync Summary')}:</h4>
-                <p><strong>{t('Device ID')}:</strong> {syncResult.device_id}</p>
-                <p><strong>{t('Board Type')}:</strong> {getBoardTypeDisplayName(syncResult.board_type)}</p>
-                <p><strong>{t('Total Commands')}:</strong> {syncResult.total_commands}</p>
-                <p><strong>{t('Success Count')}:</strong> {syncResult.success_count}</p>
-                
-                {/* 如果所有命令都失败，只显示设备不可达提示 */}
-                {syncResult.success_count === 0 ? (
-                  <div style={{ color: 'red', marginTop: '20px' }}>
-                    <h4>{t('Device is unreachable')}</h4>
-                    <p>{t('Please check network connection and device status.')}</p>
+                <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
+                  <div style={{ flex: 1, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e6f7ff', padding: 16 }}>
+                    <h4 style={{ color: '#1890ff', fontWeight: 700 }}>{t('Sync Summary')}</h4>
+                    <div style={{ margin: '8px 0' }}><strong>{t('Device ID')}:</strong> <span style={{ color: '#222' }}>{syncResult.device_id}</span></div>
+                    <div style={{ margin: '8px 0' }}><strong>{t('Board Type')}:</strong> <span style={{ color: '#222' }}>{getBoardTypeDisplayName(syncResult.board_type)}</span></div>
+                    <div style={{ margin: '8px 0' }}><strong>{t('Total Commands')}:</strong> <span style={{ color: '#222' }}>{syncResult.total_commands}</span></div>
+                    <div style={{ margin: '8px 0' }}><strong>{t('Success Count')}:</strong> <span style={{ color: syncResult.success_count === syncResult.total_commands ? '#52c41a' : syncResult.success_count === 0 ? '#ff4d4f' : '#faad14', fontWeight: 700 }}>{syncResult.success_count}</span></div>
                   </div>
-                ) : (
+                  {syncResult.success_count === 0 && (
+                    <div style={{ flex: 1, background: '#fff1f0', borderRadius: 8, boxShadow: '0 2px 8px #ffccc7', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <h4 style={{ color: '#cf1322', fontWeight: 700 }}>❌ {t('Device is unreachable')}</h4>
+                      <p style={{ color: '#cf1322' }}>{t('Please check network connection and device status.')}</p>
+                    </div>
+                  )}
+                </div>
+                {syncResult.success_count > 0 && (
                   <>
-                    <h4>{t('Sync Results')}:</h4>
-                    <div style={{ maxHeight: '300px', overflow: 'auto' }}>
+                    <Divider style={{ margin: '16px 0' }} />
+                    <h4 style={{ color: '#1890ff', fontWeight: 700 }}>{t('Sync Results')}</h4>
+                    <div style={{ maxHeight: '320px', overflow: 'auto', display: 'flex', flexWrap: 'wrap', gap: 16 }}>
                       {Object.entries(syncResult.sync_results || {}).map(([command, result]: [string, any]) => (
-                        <div key={command} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #d9d9d9', borderRadius: '4px' }}>
-                          <h5>{command.replace('get_', '').replace(/_/g, ' ')}</h5>
-                          <p><strong>{t('Status')}:</strong> {result.success ? '✅ ' + t('Success') : '❌ ' + t('Failed')}</p>
+                        <div key={command} style={{ flex: '1 1 320px', minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e6f7ff', padding: 16, marginBottom: 8, border: result.success ? '1px solid #b7eb8f' : '1px solid #ffa39e' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                            <span style={{ fontSize: 18, marginRight: 8 }}>{result.success ? '✅' : '❌'}</span>
+                            <span style={{ fontWeight: 600, color: result.success ? '#52c41a' : '#ff4d4f', fontSize: 16 }}>{command.replace('get_', '').replace(/_/g, ' ')}</span>
+                          </div>
+                          <div style={{ marginBottom: 4 }}><strong>{t('Status')}:</strong> <span style={{ color: result.success ? '#52c41a' : '#ff4d4f' }}>{result.success ? t('Success') : t('Failed')}</span></div>
                           {result.error && (
-                            <p><strong>{t('Error')}:</strong> {
-                              result.error.includes('Device is unreachable') || result.error.includes('设备不可达') 
-                                ? t('Device is unreachable') 
-                                : result.error
-                            }</p>
+                            <div style={{ color: '#ff4d4f', marginBottom: 4 }}><strong>{t('Error')}:</strong> {result.error.includes('Device is unreachable') || result.error.includes('设备不可达') ? t('Device is unreachable') : result.error}</div>
                           )}
                           {result.config && (
-                            <div>
+                            <div style={{ marginTop: 8 }}>
                               <strong>{t('Config')}:</strong>
-                              <div style={{ fontSize: '12px', background: '#f5f5f5', padding: '8px', borderRadius: '4px', marginTop: '4px' }}>
-                                {/* 过滤和优化配置显示 */}
+                              <div style={{ fontSize: '13px', background: '#f5f5f5', padding: '8px', borderRadius: '4px', marginTop: '4px', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center' }}>
                                 {(() => {
                                   const config = result.config;
                                   const hiddenFields = [
@@ -459,67 +452,22 @@ const Devices: React.FC = () => {
                                     'stored_power', 'working_type', 'access_state_enabled', 'master_ip', 
                                     'slave_ip', 'status', 'message', 'note'
                                   ];
-                                  
                                   const validConfig = Object.entries(config)
                                     .filter(([key, value]) => 
                                       !hiddenFields.includes(key) && 
                                       value !== '' && 
                                       value !== null && 
                                       value !== undefined
-                                    )
-                                    .sort(([keyA], [keyB]) => {
-                                      const priorityOrder = [
-                                        'ip', 'device_type', 'encryption_algorithm', 'current_setting',
-                                        'frequency_band', 'bandwidth', 'frequency', 'power',
-                                        'frequency_hopping', 'slave_max_tx_power', 'access_state',
-                                        'all_radio_param_report', 'radio_param_report', 'band_config'
-                                      ];
-                                      const indexA = priorityOrder.indexOf(keyA);
-                                      const indexB = priorityOrder.indexOf(keyB);
-                                      if (indexA === -1 && indexB === -1) return 0;
-                                      if (indexA === -1) return 1;
-                                      if (indexB === -1) return -1;
-                                      return indexA - indexB;
-                                    });
-
+                                    );
                                   if (validConfig.length === 0) {
                                     return <span style={{ color: '#999' }}>No valid configuration data</span>;
                                   }
-
-                                  return (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center' }}>
-                                      {validConfig.map(([key, value]) => (
+                                  return validConfig.map(([key, value]) => (
                                         <React.Fragment key={key}>
-                                          <span style={{ fontWeight: 600, color: '#444' }}>
-                                            {key === 'device_type' ? 'Device Type' :
-                                             key === 'encryption_algorithm' ? 'Encryption' :
-                                             key === 'current_setting' ? 'TDD Setting' :
-                                             key === 'frequency_band' ? 'Frequency Band' :
-                                             key === 'frequency_hopping' ? 'Frequency Hopping' :
-                                             key === 'slave_max_tx_power' ? 'Max TX Power' :
-                                             key === 'access_state' ? 'Access State' :
-                                             key === 'all_radio_param_report' ? 'Radio Report' :
-                                             key === 'radio_param_report' ? 'Param Report' :
-                                             key === 'band_config' ? 'Band Config' :
-                                             key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}:
-                                          </span>
-                                          <span>
-                                            {key === 'encryption_algorithm' ? (
-                                              <span>
-                                                {value === '0' || value === 0 ? 'NONE'
-                                                  : value === '1' || value === 1 ? 'SNOW3G'
-                                                  : value === '2' || value === 2 ? 'AES'
-                                                  : value === '3' || value === 3 ? 'ZUC'
-                                                  : String(value)}
-                                              </span>
-                                            ) : (
-                                              Array.isArray(value) ? value.join(', ') : String(value)
-                                            )}
-                                          </span>
+                                      <span style={{ fontWeight: 600, color: '#444' }}>{key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}:</span>
+                                      <span>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
                                         </React.Fragment>
-                                      ))}
-                                    </div>
-                                  );
+                                  ));
                                 })()}
                               </div>
                             </div>
@@ -596,7 +544,7 @@ const Devices: React.FC = () => {
             <Select>
               <Option value="board_1.0_star">Board 1.0 Star</Option>
               <Option value="board_1.0_mesh">Board 1.0 Mesh</Option>
-              <Option value="board_6680">Board 6680</Option>
+              <Option value="board_2.0_star">Board 2.0 Star</Option>
             </Select>
           </Form.Item>
 

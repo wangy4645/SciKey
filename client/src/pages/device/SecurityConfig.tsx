@@ -22,6 +22,7 @@ import {
   FireOutlined,
   InfoCircleOutlined,
   KeyOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import styles from './SecurityConfig.module.css';
 import type { SecurityConfig as SecurityConfigType } from './types';
@@ -40,7 +41,7 @@ enum EncryptionAlgorithm {
 }
 
 // 加密算法显示名称映射
-const ENCRYPTION_ALGORITHM_LABELS = {
+const ENCRYPTION_ALGORITHM_LABELS: { [key: number]: string } = {
   0: "None",
   1: "SNOW3G",
   2: "AES",
@@ -49,9 +50,10 @@ const ENCRYPTION_ALGORITHM_LABELS = {
 
 interface SecurityConfigProps {
   deviceId: string;
+  isMesh?: boolean;
 }
 
-const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) => {
+const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId, isMesh }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -73,6 +75,9 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
     security_updates: false,
     security_scan_period: 24,
   });
+  // mesh本地状态
+  const [meshLocal, setMeshLocal] = useState<SecurityConfigType | null>(null);
+  const [meshSyncLoading, setMeshSyncLoading] = useState(false);
 
   // Key Tab State
   const [key, setKey] = useState('');
@@ -80,82 +85,42 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
   const [keyError, setKeyError] = useState('');
   const [currentKey, setCurrentKey] = useState('');
 
+  // mesh本地状态
+  const isMeshLocal = false; // TODO: 通过props或deviceId查找设备类型
+
+  // 已移除自动同步相关useEffect代码
+
+  // 获取当前配置
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         setLoading(true);
         const response = await deviceConfigAPI.getSecurityConfig(Number(deviceId));
         if (response && response.data && response.data.config) {
-          const configData = response.data.config as SecurityConfigType;
-          
-          // 检查是否是执行状态响应（没有具体配置数据）
-          if (configData.status === 'command_executed' && configData.note) {
-            console.log('Device returned execution status only:', configData.note);
-            message.info('Device command executed successfully, but no configuration data was returned. This may indicate that the device does not support this command or requires additional setup.');
-            return;
-          }
-          
-          // 将 security_scan_period 从秒转换为小时
-          if (configData.security_scan_period) {
-            configData.security_scan_period = Math.round(configData.security_scan_period / 3600);
-          }
-          
-          setConfig(configData);
-          form.setFieldsValue(configData);
-        } else {
-          message.error(t('Failed to get security configuration: invalid response format'));
+          const configData = response.data.config;
+          setConfig(prev => ({
+            ...prev,
+            ...configData,
+            encryption_algorithm: Number(configData.encryption_algorithm ?? 0), // 强制转为数字
+          }));
+          form.setFieldsValue({
+            ...configData,
+            encryption_algorithm: Number(configData.encryption_algorithm ?? 0), // 强制转为数字
+          });
         }
-      } catch (error) {
-        console.error('Error fetching security config:', error);
-        message.error(t('Failed to get security configuration: ') + (error instanceof Error ? error.message : t('Unknown error')));
+      } catch (e) {
+        // ... existing code ...
       } finally {
         setLoading(false);
       }
     };
-    
     fetchConfig();
-    
-    // 监听设备配置同步事件
-    const handleDeviceConfigSync = (event: CustomEvent) => {
-      if (event.detail && event.detail.deviceId === Number(deviceId)) {
-        console.log('Security config: Received sync event, refreshing data...');
-        fetchConfig();
-      }
-    };
-    
-    window.addEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
-    
-    return () => {
-      window.removeEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
-    };
-  }, [deviceId, form]);
-
-  // 获取当前Key
-  useEffect(() => {
-    const fetchKey = async () => {
-      try {
-        setKeyLoading(true);
-        // 从安全配置中获取encryption_key字段
-        const response = await deviceConfigAPI.getSecurityConfig(Number(deviceId));
-        if (response && response.data && response.data.config && response.data.config.encryption_key) {
-          setCurrentKey(response.data.config.encryption_key);
-        } else {
-          setCurrentKey('');
-        }
-      } catch (e) {
-        setCurrentKey('');
-      } finally {
-        setKeyLoading(false);
-      }
-    };
-    fetchKey();
   }, [deviceId]);
 
   // 获取被修改的字段
   const getChangedFields = (original: Record<string, any>, updated: Record<string, any>) => {
     const changed: Record<string, any> = {};
     Object.keys(updated).forEach(key => {
-      // 用全等判断，确保0等falsy值也能被识别为变化
       if (updated[key] !== original[key]) {
         changed[key] = updated[key];
       }
@@ -166,60 +131,28 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
   const handleSubmit = async (values: SecurityConfigType) => {
     setLoading(true);
     try {
-      // 只传递被修改的字段
       const changedFields = getChangedFields(config, values);
       changedFields.device_id = Number(deviceId);
-
-      // 确保encryption_algorithm字段总是被发送（即使值没有变化）
       if (Object.prototype.hasOwnProperty.call(values, 'encryption_algorithm')) {
         changedFields.encryption_algorithm = values.encryption_algorithm;
       }
-
-      // 添加调试日志
-      console.log('Original config:', config);
-      console.log('Form values:', values);
-      console.log('Changed fields:', changedFields);
-      console.log('encryption_key in values:', values.encryption_key);
-      console.log('encryption_algorithm in values:', values.encryption_algorithm);
-
-      // 特殊处理：如果有 security_scan_period，转换为秒
       if ('security_scan_period' in changedFields) {
         changedFields.security_scan_period = changedFields.security_scan_period * 3600;
       }
-
       await deviceConfigAPI.updateSecurityConfig(Number(deviceId), changedFields);
-
-      // 检查是否有字段被修改（除了device_id）
-      const hasChanges = Object.keys(changedFields).some(key => key !== 'device_id');
-      console.log('Has changes:', hasChanges);
-      console.log('Changed fields keys:', Object.keys(changedFields));
-      
-      // 检查是否有encryption_key，如果有则发送AT+CONFIG指令
-      if (values.encryption_key && values.encryption_key.trim() !== '') {
-        const atCommand = `AT+CONFIG=0,0,0,0,${values.encryption_algorithm || 0},${values.encryption_key}`;
-        console.log('Sending AT+CONFIG command with key:', atCommand);
-        await deviceConfigAPI.sendATCommand(Number(deviceId), atCommand);
-      } else if (Object.prototype.hasOwnProperty.call(values, 'encryption_algorithm')) {
-        // 只有加密算法变化时，发送AT^DCIAC指令
-        const atCommand = `AT^DCIAC=${values.encryption_algorithm}`;
-        console.log('Sending AT^DCIAC command:', atCommand);
-        await deviceConfigAPI.sendATCommand(Number(deviceId), atCommand);
-      } else if (hasChanges) {
-        // 其他字段变化时发送默认AT指令
-        const atCommand = 'AT+CONFIG?'; // 示例
-        if (atCommand) {
-          await deviceConfigAPI.sendATCommand(Number(deviceId), atCommand);
-        }
-      } else {
-        console.log('No changes detected, skipping AT command');
-      }
-
-      message.success(t('Security configuration updated successfully'));
-      
-      // 如果保存了encryption_key，更新currentKey显示
+      setConfig(prev => ({
+        ...prev,
+        ...values,
+        encryption_algorithm: values.encryption_algorithm
+      }));
+      form.setFieldsValue({
+        ...values,
+        encryption_algorithm: values.encryption_algorithm
+      });
       if (values.encryption_key && values.encryption_key.trim() !== '') {
         setCurrentKey(values.encryption_key);
       }
+      message.success(t('Security configuration updated successfully'));
     } catch (error) {
       message.error(t('Failed to update security configuration'));
     } finally {
@@ -274,25 +207,13 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
       <div className={styles.currentKeySection}>
         <div className={styles.currentKeyLabel}>
           <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
-          <strong>{t('Now Algorithm')}:</strong>
+          <span style={{ fontWeight: 600 }}>{t('Now Algorithm')}:</span>
         </div>
         <div className={styles.currentKeyValue}>
-          {(() => {
-            console.log('encryption_algorithm value:', config.encryption_algorithm, 'type:', typeof config.encryption_algorithm);
-            const algo = Number(config.encryption_algorithm);
-            console.log('converted algo:', algo, 'type:', typeof algo);
-            const result = algo === 0 ? t('None') :
-              algo === 1 ? 'SNOW3G' :
-              algo === 2 ? 'AES' :
-              algo === 3 ? 'ZUC' : t('Not set');
-            console.log('display result:', result);
-            return result;
-          })()}
+          {ENCRYPTION_ALGORITHM_LABELS[Number(config.encryption_algorithm) ?? 0]}
         </div>
       </div>
-      
       <Divider />
-      
       <Form.Item label={t('Encryption Algorithm')} name="encryption_algorithm">
         <Select>
           <Select.Option value={0}>{t('None')}</Select.Option>
@@ -494,6 +415,53 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId }) =>
       </Form.Item>
     </Card>
   );
+
+  // mesh同步按钮逻辑
+  const handleMeshSync = async () => {
+    setMeshSyncLoading(true);
+    try {
+      // 这里只举例用AT^DCIAC?和AT^DAPI?，如有更多mesh安全指令可补充
+      const algRes = await deviceConfigAPI.sendATCommand(Number(deviceId), 'AT^DCIAC?');
+      const pwdRes = await deviceConfigAPI.sendATCommand(Number(deviceId), 'AT^DAPI?');
+      // 解析响应并更新本地（实际应由后端同步到本地数据库）
+      // 这里只做前端展示
+      const meshConfig: SecurityConfigType = {
+        ...config,
+        encryption_algorithm: algRes.data?.response || '',
+        encryption_key: pwdRes.data?.response || '',
+      };
+      setMeshLocal(meshConfig);
+      form.setFieldsValue(meshConfig);
+    } catch (err) {
+      message.error(t('Failed to fetch mesh security config'));
+    } finally {
+      setMeshSyncLoading(false);
+    }
+  };
+
+  if (isMesh) {
+    return (
+      <Card title={t('Security')}>
+        <Button
+          type="primary"
+          icon={<SyncOutlined />}
+          onClick={handleMeshSync}
+          loading={meshSyncLoading}
+          style={{ float: 'right', marginBottom: 16 }}
+        >
+          {t('Sync')}
+        </Button>
+        <Form form={form} layout="vertical">
+          <Form.Item label={t('Encryption Algorithm')} name="encryption_algorithm">
+            <Input readOnly />
+          </Form.Item>
+          <Form.Item label={t('Password ID')} name="encryption_key">
+            <Input readOnly />
+          </Form.Item>
+        </Form>
+      </Card>
+    );
+  }
 
   return (
     <div className={styles.container}>

@@ -57,6 +57,8 @@ const SyncButton: React.FC<SyncButtonProps> = ({
       } else {
         message.success(t('Configuration synchronized successfully'));
         onSyncSuccess?.();
+        // 自动通知子页面刷新
+        window.dispatchEvent(new CustomEvent('deviceConfigSync', { detail: { deviceId } }));
       }
       
     } catch (error: any) {
@@ -156,50 +158,98 @@ const SyncButton: React.FC<SyncButtonProps> = ({
             }}>
               <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
                 <tbody>
-                  {keyConfigEntries.map(([key, value]) => (
-                    <tr key={key}>
-                      <td style={{
-                        fontWeight: 600,
-                        color: '#444',
-                        textAlign: 'right',
-                        padding: '4px 12px 4px 0',
-                        width: 160,
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {/* 字段名称友好化显示 */}
-                        {key === 'device_type' ? 'Device Type' :
-                         key === 'encryption_algorithm' ? 'Encryption' :
-                         key === 'current_setting' ? 'TDD Setting' :
-                         key === 'frequency_band' ? 'Frequency Band' :
-                         key === 'frequency_hopping' ? 'Frequency Hopping' :
-                         key === 'slave_max_tx_power' ? 'Max TX Power' :
-                         key === 'access_state' ? 'Access State' :
-                         key === 'all_radio_param_report' ? 'Radio Report' :
-                         key === 'radio_param_report' ? 'Param Report' :
-                         key === 'band_config' ? 'Band Config' :
-                         key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}：
-                      </td>
-                      <td style={{
-                        textAlign: 'left',
-                        padding: '4px 0',
-                        wordBreak: 'break-all',
-                      }}>
-                        {key === 'encryption_algorithm' ? (
-                          <span>
-                            {value === '0' || value === 0 ? 'NONE'
-                              : value === '1' || value === 1 ? 'SNOW3G'
-                              : value === '2' || value === 2 ? 'AES'
-                              : value === '3' || value === 3 ? 'ZUC'
-                              : String(value)}
-                          </span>
-                        ) : Array.isArray(value) ? (
-                          value.length > 0 ? value.join(', ') : null
-                        ) : (
-                          String(value)
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* 优先显示 Network Role */}
+                  {(() => {
+                    const val = config_data.device_type;
+                    console.log('DEBUG Network Role:', val, typeof val);
+                    if (val !== undefined && val !== null && String(val).trim() !== '') {
+                      const strVal = String(val).trim();
+                      let role = 'Unknown';
+                      if (strVal === '0') role = 'Auto Mode';
+                      else if (strVal === '1') role = 'Master Node';
+                      else if (strVal === '2') role = 'Slave Node';
+                      else role = strVal;
+                      return (
+                        <tr>
+                          <td style={{
+                            fontWeight: 600,
+                            color: '#444',
+                            textAlign: 'right',
+                            padding: '4px 12px 4px 0',
+                            width: 160,
+                            whiteSpace: 'nowrap',
+                          }}>Network Role:</td>
+                          <td style={{
+                            textAlign: 'left',
+                            padding: '4px 0',
+                            wordBreak: 'break-all',
+                          }}>{role}</td>
+                        </tr>
+                      );
+                    }
+                    return null;
+                  })()}
+                  {/* 其它配置项 */}
+                  {keyConfigEntries.map(([key, value]) => {
+                    if (key === 'device_type') return null; // 跳过已显示的 Network Role
+                    const isTddConfig = key === 'current_setting' && ['2D3U','3D2U','4D1U','1D4U'].includes(String(value).trim().toUpperCase());
+                    return isTddConfig ? (
+                      <tr key={key}>
+                        <td style={{
+                          fontWeight: 600,
+                          color: '#444',
+                          textAlign: 'right',
+                          padding: '4px 12px 4px 0',
+                          width: 160,
+                          whiteSpace: 'nowrap',
+                        }}>Tdd config:</td>
+                        <td style={{
+                          textAlign: 'left',
+                          padding: '4px 0',
+                          wordBreak: 'break-all',
+                        }}>{String(value).trim()}</td>
+                      </tr>
+                    ) : (
+                      <tr key={key}>
+                        <td style={{
+                          fontWeight: 600,
+                          color: '#444',
+                          textAlign: 'right',
+                          padding: '4px 12px 4px 0',
+                          width: 160,
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {/* 字段名称友好化显示 */}
+                          {key === 'encryption_algorithm' ? 'Encryption' :
+                           key === 'frequency_band' ? 'Frequency Band' :
+                           key === 'frequency_hopping' ? 'Frequency Hopping' :
+                           key === 'slave_max_tx_power' ? 'Max TX Power' :
+                           key === 'access_state' ? 'Access State' :
+                           key === 'all_radio_param_report' ? 'Radio Report' :
+                           key === 'radio_param_report' ? 'Param Report' :
+                           key === 'band_config' ? 'Band Config' :
+                           key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}:
+                        </td>
+                        <td style={{
+                          textAlign: 'left',
+                          padding: '4px 0',
+                          wordBreak: 'break-all',
+                        }}>
+                          {key === 'encryption_algorithm' ? (
+                            <span>
+                              {value === '0' || value === 0 ? 'NONE'
+                                : value === '1' || value === 1 ? 'SNOW3G'
+                                : value === '2' || value === 2 ? 'AES'
+                                : value === '3' || value === 3 ? 'ZUC'
+                                : String(value)}
+                            </span>
+                          ) : (
+                            String(value)
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -225,7 +275,11 @@ const SyncButton: React.FC<SyncButtonProps> = ({
                   <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
                 )}
                 <Text style={{ flex: 1, fontSize: 12 }}>
-                  {commandName.replace('get_', '').replace(/_/g, ' ')}
+                  {commandName === 'get_tdd_config' && result.config && result.config.current_setting ? (
+                    `Tdd config: ${String(result.config.current_setting).trim()}`
+                  ) : (
+                    commandName.replace('get_', '').replace(/_/g, ' ')
+                  )}
                 </Text>
                 <Tag color={result.success ? 'green' : 'red'}>
                   {result.success ? t('Success') : t('Failed')}

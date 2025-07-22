@@ -25,6 +25,17 @@ const UpDownSettingConfig: React.FC<UpDownSettingConfigProps> = ({
   return (
     <div className={styles.container}>
       <Card title="Up/Down Settings" className={styles.card}>
+        {/* Current Value Display - 卡片分行风格 */}
+        <div className={styles.currentKeySection}>
+          <div className={styles.currentKeyLabel}>Now Auto Restart:</div>
+          <div className={styles.currentKeyValue}>{form.getFieldValue('autoRestart') ? 'On' : 'Off'}</div>
+          <div className={styles.currentKeyLabel}>Now Restart Delay:</div>
+          <div className={styles.currentKeyValue}>{form.getFieldValue('restartDelay') || '-'}</div>
+          <div className={styles.currentKeyLabel}>Now Max Retries:</div>
+          <div className={styles.currentKeyValue}>{form.getFieldValue('maxRetries') || '-'}</div>
+          <div className={styles.currentKeyLabel}>Now Retry Interval:</div>
+          <div className={styles.currentKeyValue}>{form.getFieldValue('retryInterval') || '-'}</div>
+        </div>
         <Form
           form={form}
           layout="vertical"

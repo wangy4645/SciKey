@@ -124,6 +124,52 @@
   border-right: 0;
 }
 
+.menuCardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.menuCard {
+  width: 90%;
+  min-width: 160px;
+  max-width: 240px;
+  min-height: 90px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(59,130,246,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s, background 0.2s, border 0.2s;
+  border: 2px solid transparent;
+}
+
+.menuCardIcon {
+  font-size: 36px;
+  color: #3b82f6;
+  margin-bottom: 8px;
+}
+
+.menuCardLabel {
+  font-size: 17px;
+  font-weight: 600;
+  color: #3b82f6;
+  letter-spacing: 1px;
+}
+
+.menuCardActive,
+.menuCard:hover {
+  background: #dbeafe;
+  box-shadow: 0 4px 24px #3b82f633;
+  border: 2px solid #3b82f6;
+}
+
 @media (max-width: 768px) {
   .header {
     padding: 0 12px;

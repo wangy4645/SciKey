@@ -70,6 +70,7 @@ const Dashboard: React.FC = () => {
       
       // 为每个设备获取告警数据
       for (const device of devices) {
+        if (!device.id || isNaN(Number(device.id))) continue; // 跳过无效id
         try {
           const alertsResponse = await deviceAPI.getAlerts(device.id, 'active');
           if (alertsResponse.data && Array.isArray(alertsResponse.data)) {

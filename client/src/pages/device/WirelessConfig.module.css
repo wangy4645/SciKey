@@ -86,7 +86,7 @@
 }
 
 .buttonGroup button {
-  margin-left: 8px;
+  width: 180px !important;
 }
 
 .description {
@@ -97,6 +97,16 @@
 
 .currentConfig {
   margin-bottom: 16px;
+}
+
+.currentConfigRow {
+  margin-top: 8px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 
 .settingValue {

@@ -16,15 +16,11 @@ const App: React.FC = () => {
   const { user, initialize, initialized, loading } = useAuth();
 
   useEffect(() => {
-    console.log('App: Initializing auth...');
     initialize();
   }, [initialize]);
 
-  console.log('App: State - user:', !!user, 'initialized:', initialized, 'loading:', loading);
-
   // 如果还在初始化中，显示加载状态
   if (!initialized) {
-    console.log('App: Showing loading state - not initialized');
     return (
       <div style={{ 
         display: 'flex', 
@@ -37,8 +33,6 @@ const App: React.FC = () => {
       </div>
     );
   }
-
-  console.log('App: Rendering routes, user:', !!user);
 
   return (
     <Routes>

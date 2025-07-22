@@ -17,6 +17,16 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
   return (
     <div className={styles.container}>
       <Card title="Wireless Settings" className={styles.configCard}>
+        {/* Current Value Display - 卡片分行风格 */}
+        <div className={styles.currentKeySection}>
+          <div className={styles.currentKeyLabel}>Now Band:</div>
+          <div className={styles.currentKeyValue}>{form.getFieldValue('band') || '-'}</div>
+          <div className={styles.currentKeyLabel}>Now Channel:</div>
+          <div className={styles.currentKeyValue}>{form.getFieldValue('channel') || '-'}</div>
+          <div className={styles.currentKeyLabel}>Now Channel Width:</div>
+          <div className={styles.currentKeyValue}>{form.getFieldValue('channelWidth') || '-'}</div>
+        </div>
+        {/* Wireless Settings Form */}
         <Form
           form={form}
           layout="vertical"

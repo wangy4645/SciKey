@@ -5,11 +5,13 @@ import {
   WifiOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import type { Device } from '../../types';
 import { deviceAPI } from '../../services/api';
 import SyncButton from '../../components/SyncButton';
 import styles from './NetworkStatus.module.css';
+import { deviceConfigAPI } from '../../services/deviceConfigAPI';
 
 interface NetworkStateConfigProps {
   device: Device;
@@ -26,6 +28,23 @@ interface NetworkStatusData {
 
 const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, loading }) => {
   const { t } = useTranslation();
+  const isMesh = device.board_type && device.board_type.toLowerCase().includes('mesh');
+
+  // mesh专有状态
+  const [meshStatus, setMeshStatus] = useState<{
+    accessState: string;
+    deviceType: string;
+    ipAddress: string;
+    loading: boolean;
+  }>({ accessState: '-', deviceType: '-', ipAddress: '-', loading: false });
+
+  // mesh本地状态
+  const [meshLocal, setMeshLocal] = useState<{
+    accessState: string;
+    deviceType: string;
+    ipAddress: string;
+  }>({ accessState: '-', deviceType: '-', ipAddress: '-' });
+
   const [status, setStatus] = useState<NetworkStatusData>({
     connectionStatus: 'disconnected',
     ipAddress: device.ip || '',
@@ -80,14 +99,75 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
     }
   };
 
+  // mesh设备时获取本地状态
+  const fetchMeshLocalStatus = async () => {
+    try {
+      // 假设本地接口为 getNetworkConfig，返回结构需适配
+      const res = await deviceConfigAPI.getNetworkConfig(device.id);
+      setMeshLocal({
+        accessState: res.data?.config?.accessState || '-',
+        deviceType: res.data?.config?.deviceType || '-',
+        ipAddress: res.data?.config?.ipAddress || '-',
+      });
+    } catch {
+      setMeshLocal({ accessState: '-', deviceType: '-', ipAddress: '-' });
+    }
+  };
+
+  // mesh设备时获取专有状态（同步/刷新时）
+  const fetchMeshNetworkStatus = async (showError = false) => {
+    setMeshStatus(prev => ({ ...prev, loading: true }));
+    try {
+      // AT^DACS? 获取接入状态
+      const dacsRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DACS?');
+      let accessState = '-';
+      const dacsMatch = /\^DACS:\s*(\d+),(\d+)/.exec(dacsRes.data?.response || '');
+      if (dacsMatch) {
+        accessState = dacsMatch[2] === '1' ? t('Connected') : t('Disconnected');
+      }
+      // AT^DDTC? 获取设备类型
+      const typeRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DDTC?');
+      let deviceType = '-';
+      const typeMatch = /\^DDTC:\s*(\d+),(\d+)/.exec(typeRes.data?.response || '');
+      if (typeMatch) {
+        switch (typeMatch[1]) {
+          case '0': deviceType = t('Auto'); break;
+          case '1': deviceType = t('Master Node'); break;
+          case '2': deviceType = t('Access Node'); break;
+          default: deviceType = typeMatch[1];
+        }
+      }
+      // AT^NETIFCFG? 获取IP地址
+      const netifRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^NETIFCFG?');
+      let ipAddress = '-';
+      const ipMatch = /\^NETIFCFG:\s*\d+,([\d.]+)/.exec(netifRes.data?.response || '');
+      if (ipMatch) {
+        ipAddress = ipMatch[1];
+      }
+      setMeshStatus({ accessState, deviceType, ipAddress, loading: false });
+      // 同步到本地（可选）
+      setMeshLocal({ accessState, deviceType, ipAddress });
+    } catch (err) {
+      setMeshStatus({ accessState: '-', deviceType: '-', ipAddress: '-', loading: false });
+      if (showError) message.error(t('Failed to fetch mesh network status'));
+    }
+  };
+
   useEffect(() => {
-    fetchNetworkStatus();
+    if (isMesh) {
+      fetchMeshLocalStatus();
+    } else {
+      fetchNetworkStatus();
+    }
     
     // 监听设备配置同步事件
     const handleDeviceConfigSync = (event: CustomEvent) => {
       if (event.detail && event.detail.deviceId === Number(device.id)) {
-        console.log('Network status: Received sync event, refreshing data...');
-        fetchNetworkStatus();
+        if (isMesh) {
+          fetchMeshLocalStatus();
+        } else {
+          fetchNetworkStatus();
+        }
       }
     };
     
@@ -96,7 +176,7 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
     return () => {
       window.removeEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
     };
-  }, [device]);
+  }, [device, isMesh]);
 
   const getQualityColor = (quality: string) => {
     switch (quality) {
@@ -116,6 +196,66 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
   const handleRefresh = () => {
     fetchNetworkStatus();
   };
+
+  if (isMesh) {
+    // 颜色和图标映射
+    const accessStateColor = meshLocal.accessState === t('Connected') ? '#52c41a' : '#ff4d4f';
+    const accessStateIcon = meshLocal.accessState === t('Connected') ? <CheckCircleOutlined /> : <CloseCircleOutlined />;
+    let deviceTypeColor = 'default';
+    switch (meshLocal.deviceType) {
+      case t('Master Node'): deviceTypeColor = 'blue'; break;
+      case t('Access Node'): deviceTypeColor = 'green'; break;
+      case t('Auto'): deviceTypeColor = 'orange'; break;
+      default: deviceTypeColor = 'default';
+    }
+    return (
+      <div className={styles.container}>
+        <Row gutter={[16, 16]}>
+          <Col span={24}>
+            <Card 
+              title={t('Network Status')} 
+              className={styles.card} loading={meshStatus.loading}
+              extra={
+                <Button
+                  type="primary"
+                  icon={<SyncOutlined />}
+                  onClick={() => fetchMeshNetworkStatus(true)}
+                  loading={meshStatus.loading}
+                >
+                  {t('Sync')}
+                </Button>
+              }
+            >
+              <Row gutter={[16, 16]}>
+                <Col span={8}>
+                  <Statistic
+                    title={t('Access State')}
+                    value={meshLocal.accessState}
+                    valueStyle={{ color: accessStateColor }}
+                    prefix={accessStateIcon}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title={t('Device Type')}
+                    value={meshLocal.deviceType}
+                    valueStyle={{ color: deviceTypeColor === 'default' ? undefined : deviceTypeColor }}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title={t('IP Address')}
+                    value={meshLocal.ipAddress}
+                    valueStyle={{ color: '#1890ff' }}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

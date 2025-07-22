@@ -42,7 +42,7 @@ const Board6680NetworkConfig: React.FC<{ device: Device }> = ({ device }) => {
         </Button>
         <div>
           <p><strong>{t('Board Type')}:</strong> 6680</p>
-          <p><strong>{t('Device Role')}:</strong> {device.type}</p>
+          <p><strong>{t('Network Role')}:</strong> {device.type}</p>
           <p><strong>{t('Node ID')}:</strong> {device.node_id}</p>
         </div>
       </Space>

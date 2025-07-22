@@ -47,38 +47,89 @@ func (s *Service) SendCommand(device *Device, command *NetManagerRequest) (*NetM
 	}
 	fmt.Printf("转换后的板级请求: %+v\n", boardReq)
 
-	// 发送请求到设备
-	reqBody, err := json.Marshal(boardReq)
-	if err != nil {
-		return nil, fmt.Errorf("序列化请求失败: %w", err)
+	// 判断协议类型
+	if device.BoardType == "1.0" || device.BoardType == "1.0_star" {
+		// 1.0 star老协议，POST表单到/boafrm/formAtcmdProcess
+		url := fmt.Sprintf("http://%s/boafrm/formAtcmdProcess", device.IP)
+		form := make(map[string][]string)
+		form["FormAtcmd_Param_Atcmd"] = []string{boardReq.AT}
+		resp, err := s.client.PostForm(url, form)
+		if err != nil {
+			return nil, fmt.Errorf("发送请求失败: %w", err)
+		}
+		defer resp.Body.Close()
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		result := buf.String()
+		return &NetManagerResponse{Success: true, Result: result}, nil
+	} else {
+		// 2.0/6680新协议，POST JSON到/atservice.fcgi
+		reqBody, err := json.Marshal(boardReq)
+		if err != nil {
+			return nil, fmt.Errorf("序列化请求失败: %w", err)
+		}
+		url := fmt.Sprintf("http://%s/atservice.fcgi", device.IP)
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
+		if err != nil {
+			return nil, fmt.Errorf("创建请求失败: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := s.client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("发送请求失败: %w", err)
+		}
+		defer resp.Body.Close()
+		var boardResp BoardResponse
+		if err := json.NewDecoder(resp.Body).Decode(&boardResp); err != nil {
+			return nil, fmt.Errorf("解析响应失败: %w", err)
+		}
+		return ParseBoardResponse(&boardResp)
 	}
-	fmt.Printf("发送的请求体: %s\n", string(reqBody))
+}
 
-	// 构造请求URL
-	url := fmt.Sprintf("http://%s/atservice.fcgi", device.IP)
-	fmt.Printf("请求URL: %s\n", url)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
-	if err != nil {
-		return nil, fmt.Errorf("创建请求失败: %w", err)
+// SendRawATCommand 直接下发原始AT指令到设备（不走映射表，兼容mesh/通用AT指令）
+func (s *Service) SendRawATCommand(device *Device, atCmd string) (*NetManagerResponse, error) {
+	if device.BoardType == "1.0" || device.BoardType == "1.0_star" {
+		// 1.0 star老协议，POST表单到/boafrm/formAtcmdProcess
+		url := fmt.Sprintf("http://%s/boafrm/formAtcmdProcess", device.IP)
+		form := make(map[string][]string)
+		form["FormAtcmd_Param_Atcmd"] = []string{atCmd}
+		resp, err := s.client.PostForm(url, form)
+		if err != nil {
+			return nil, fmt.Errorf("发送请求失败: %w", err)
+		}
+		defer resp.Body.Close()
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		result := buf.String()
+		return &NetManagerResponse{Success: true, Result: result}, nil
+	} else {
+		// 2.0/6680新协议，POST JSON到/atservice.fcgi
+		boardReq := &BoardRequest{
+			Action: "sendcmd",
+			AT:     atCmd,
+		}
+		reqBody, err := json.Marshal(boardReq)
+		if err != nil {
+			return nil, fmt.Errorf("序列化请求失败: %w", err)
+		}
+		url := fmt.Sprintf("http://%s/atservice.fcgi", device.IP)
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
+		if err != nil {
+			return nil, fmt.Errorf("创建请求失败: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := s.client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("发送请求失败: %w", err)
+		}
+		defer resp.Body.Close()
+		var boardResp BoardResponse
+		if err := json.NewDecoder(resp.Body).Decode(&boardResp); err != nil {
+			return nil, fmt.Errorf("解析响应失败: %w", err)
+		}
+		return ParseBoardResponse(&boardResp)
 	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// 发送请求
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("发送请求失败: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// 解析响应
-	var boardResp BoardResponse
-	if err := json.NewDecoder(resp.Body).Decode(&boardResp); err != nil {
-		return nil, fmt.Errorf("解析响应失败: %w", err)
-	}
-	fmt.Printf("设备响应: %+v\n", boardResp)
-
-	// 转换为网管响应
-	return ParseBoardResponse(&boardResp)
 }
 
 // GetATCommandMapping 获取AT指令映射

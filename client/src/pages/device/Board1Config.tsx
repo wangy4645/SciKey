@@ -10,7 +10,6 @@ import WirelessConfig from './WirelessConfig';
 import NetSettingConfig from './NetSettingConfig';
 import UpDownConfig from './UpDownConfig';
 import DebugConfig from './DebugConfig';
-import SystemManagerConfig from '../../components/config/SystemManagerConfig';
 import DeviceTypeConfig from './DeviceTypeConfig';
 
 const { TabPane } = Tabs;
@@ -82,7 +81,6 @@ const Board1Config: React.FC<Board1ConfigProps> = ({ device, onConfigUpdate }) =
         <TabPane tab={t('Wireless')} key="wireless">
           <WirelessConfig
             device={device}
-            loading={loading}
           />
         </TabPane>
         <TabPane tab={t('Net Setting')} key="net_setting">
@@ -103,13 +101,6 @@ const Board1Config: React.FC<Board1ConfigProps> = ({ device, onConfigUpdate }) =
           <DebugConfig
             device={device}
             onSave={(values) => handleSave(values, 'debug')}
-            loading={loading}
-          />
-        </TabPane>
-        <TabPane tab={t('System')} key="system">
-          <SystemManagerConfig
-            device={device}
-            onSave={(values) => handleSave(values, 'system')}
             loading={loading}
           />
         </TabPane>

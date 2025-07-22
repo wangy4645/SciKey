@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Spin, message, Button } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Card, Spin, message, Button, Descriptions } from 'antd';
+import { ArrowLeftOutlined, AppstoreOutlined, GlobalOutlined, IdcardOutlined } from '@ant-design/icons';
+import { AppstoreTwoTone, GoldTwoTone, IdcardTwoTone } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchDevice } from '../store/slices/deviceSlice';
 import { Device } from '../types';
+import './DeviceConfig.module.css';
 
 // 导入不同板子的配置组件
 import Board1Config from './device/Board1Config';
 import Board1MeshConfig from './device/Board1MeshConfig';
 import Board6680Config from './device/Board6680Config';
+import Board2StarConfig from './device/Board2StarConfig';
 
 const DeviceConfig: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,9 +39,14 @@ const DeviceConfig: React.FC = () => {
   const [device, setDevice] = useState<Device | null>(null);
   
   useEffect(() => {
-    if (id) {
-      loadDevice(parseInt(id));
+    if (id === undefined || id === null || id === '' || id === 'undefined') {
+      // 如果id无效，给出提示，不跳转
+      message.error(t('Invalid device ID in URL. Please select a device from the list.'));
+      setLoading(false);
+      setDevice(null);
+      return;
     }
+      loadDevice(parseInt(id));
   }, [id]);
   
   const loadDevice = async (deviceId: number) => {
@@ -75,6 +83,9 @@ const DeviceConfig: React.FC = () => {
         return <Board1MeshConfig {...props} />;
       case 'board_6680':
         return <Board6680Config {...props} />;
+      case 'board_2.0_star':
+      case '2.0_star':
+        return <Board2StarConfig {...props} />;
       default:
         return (
           <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -84,6 +95,17 @@ const DeviceConfig: React.FC = () => {
         );
     }
   };
+  
+  if (!id || id === 'undefined') {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <Card>
+          <h3>{t('Invalid device ID in URL')}</h3>
+          <Button type="primary" onClick={() => navigate('/devices')}>{t('Back to Devices')}</Button>
+        </Card>
+      </div>
+    );
+  }
   
   if (loading) {
     return (
@@ -101,18 +123,29 @@ const DeviceConfig: React.FC = () => {
           <Button 
             icon={<ArrowLeftOutlined />} 
             onClick={() => navigate('/devices')}
-            style={{ marginBottom: '16px' }}
+            type="primary"
+            style={{ marginBottom: '16px', borderRadius: 6, fontWeight: 600, fontSize: 16 }}
           >
             {t('Back to Devices')}
           </Button>
           
           {device && (
-            <div>
-              <h2>{t('Device Configuration')}: {device.name}</h2>
-              <p><strong>{t('Board Type')}:</strong> {getBoardTypeDisplayName(device.board_type)}</p>
-              <p><strong>{t('IP Address')}:</strong> {device.ip}</p>
-              <p><strong>{t('Node ID')}:</strong> {device.node_id}</p>
-            </div>
+            <Descriptions
+              className="device-info-descriptions"
+              bordered
+              column={{ xs: 1, sm: 2, md: 3 }}
+              size="middle"
+            >
+              <Descriptions.Item label={t('Board Type')}>
+                {getBoardTypeDisplayName(device.board_type)}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('IP Address')}>
+                {device.ip}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Node ID')}>
+                {device.node_id}
+              </Descriptions.Item>
+            </Descriptions>
           )}
         </div>
         

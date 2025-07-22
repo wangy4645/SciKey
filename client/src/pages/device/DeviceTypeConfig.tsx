@@ -51,13 +51,12 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
   });
 
   // 网络角色选项
-  const deviceTypeOptions = [
+  const networkRoleOptions = [
     { value: '0', label: t('Auto Mode') },
     { value: '1', label: t('Master Node') },
     { value: '2', label: t('Slave Node') },
   ];
 
-  // 获取当前配置
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -74,19 +73,14 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
         console.error('Failed to fetch device type config:', error);
       }
     };
-    
     fetchConfig();
-    
-    // 监听设备配置同步事件
+
     const handleDeviceConfigSync = (event: CustomEvent) => {
       if (event.detail && event.detail.deviceId === Number(device.id)) {
-        console.log('Device type config: Received sync event, refreshing data...');
         fetchConfig();
       }
     };
-    
     window.addEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
-    
     return () => {
       window.removeEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
     };
@@ -106,8 +100,8 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
     setConfig(prev => ({ ...prev, setting: prev.currentType }));
   };
 
-  const getTypeDisplayName = (type: string) => {
-    switch (type) {
+  const getTypeDisplayName = (type: string | number) => {
+    switch (String(type)) {
       case '0':
         return t('Auto Mode');
       case '1':
@@ -115,12 +109,12 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
       case '2':
         return t('Slave Node');
       default:
-        return type || t('Unknown');
+        return t('Unknown');
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
+  const getTypeColor = (type: string | number) => {
+    switch (String(type)) {
       case '0':
         return 'default';
       case '1':
@@ -142,24 +136,23 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
             deviceId={device.id}
             configType="device_type"
             configTypeName={t('Network Role Configuration')}
-            onSyncSuccess={() => {
-              // 重新获取设备类型配置
-              const fetchConfig = async () => {
-                try {
-                  const response = await deviceConfigAPI.getDeviceTypeConfig(Number(device.id));
-                  if (response && response.data && response.data.config) {
-                    const configData = response.data.config;
-                    setConfig({
-                      currentType: configData.device_type || '',
-                      currentWorkingType: configData.working_type || '',
-                      setting: configData.device_type || '',
-                    });
-                  }
-                } catch (error) {
-                  console.error('Error fetching network role config:', error);
+            onSyncSuccess={async () => {
+              // 只同步device_type配置
+              try {
+                await deviceConfigAPI.syncDeviceConfigByType(Number(device.id), 'device_type');
+                // 同步后刷新本地配置
+                const response = await deviceConfigAPI.getDeviceTypeConfig(Number(device.id));
+                if (response && response.data && response.data.config) {
+                  const configData = response.data.config;
+                  setConfig({
+                    currentType: configData.device_type || '',
+                    currentWorkingType: configData.working_type || '',
+                    setting: configData.device_type || '',
+                  });
                 }
-              };
-              fetchConfig();
+              } catch (error) {
+                console.error('Error syncing network role config:', error);
+              }
             }}
           />
         }
@@ -185,23 +178,13 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
         
         <Divider />
         
-        <div className={styles.currentConfig}>
-          <strong>{t('Current Configuration:')}</strong>
-          <div style={{ marginTop: 8 }}>
-            <Descriptions size="small" column={1}>
-              <Descriptions.Item label={t('Network Role')}>
-                <Tag color={getTypeColor(config.currentType)}>
-                  {getTypeDisplayName(config.currentType)}
-                </Tag>
-              </Descriptions.Item>
-              {config.currentWorkingType && (
-                <Descriptions.Item label={t('Working Mode')}>
-                  <Tag color="orange">
-                    {config.currentWorkingType}
-                  </Tag>
-                </Descriptions.Item>
-              )}
-            </Descriptions>
+        <div className={styles.currentKeySection}>
+          <div className={styles.currentKeyLabel}>
+            <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+            <span style={{ fontWeight: 600 }}>{t('Now Network Role')}:</span>
+          </div>
+          <div className={styles.currentKeyValue}>
+            {getTypeDisplayName(config.currentType)}
           </div>
         </div>
 
@@ -230,7 +213,7 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
                 placeholder={t('Select network role')}
                 style={{ width: '100%' }}
               >
-                {deviceTypeOptions.map(option => (
+                {networkRoleOptions.map(option => (
                   <Option key={option.value} value={option.value}>
                     {option.label}
                   </Option>

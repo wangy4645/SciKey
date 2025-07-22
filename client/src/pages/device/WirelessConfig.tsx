@@ -15,6 +15,8 @@ import {
   Checkbox,
   Space,
   Alert,
+  Descriptions,
+  Spin,
 } from 'antd';
 import {
   WifiOutlined,
@@ -24,6 +26,7 @@ import {
   InfoCircleOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import styles from './WirelessConfig.module.css';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
@@ -36,7 +39,6 @@ const { Option } = Select;
 interface WirelessConfigProps {
   device: Device;
   onSave?: (values: any) => Promise<void>;
-  loading: boolean;
 }
 
 interface WirelessConfig {
@@ -46,8 +48,8 @@ interface WirelessConfig {
   frequencyHopping: boolean;
 }
 
-const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading }) => {
-  const { t } = useTranslation();
+const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
+  const { t, i18n } = useTranslation();
   const [form] = Form.useForm();
   const [config, setConfig] = useState<WirelessConfig>({
     frequencyBand: [],
@@ -55,6 +57,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
     buildingChain: '',
     frequencyHopping: false,
   });
+  const [loading, setLoading] = useState(false);
 
   // 添加当前设备配置状态
   const [currentFrequencyBand, setCurrentFrequencyBand] = useState<string[]>([]);
@@ -66,17 +69,13 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        console.log('Fetching wireless config for device:', device.id);
         const response = await deviceConfigAPI.getWirelessConfig(Number(device.id));
-        console.log('Wireless config response:', response);
         
         if (response && response.data && response.data.config) {
           const configData = response.data.config;
-          console.log('Wireless config data:', configData);
           
           // 检查是否是执行状态响应（没有具体配置数据）
           if (configData.status === 'command_executed' && configData.note) {
-            console.log('Device returned execution status only:', configData.note);
             // 显示提示信息
             message.info('Device command executed successfully, but no configuration data was returned. This may indicate that the device does not support this command or requires additional setup.');
             return;
@@ -94,7 +93,6 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
           if (configData.frequency_band && Array.isArray(configData.frequency_band)) {
             // 使用同步的频段配置
             frequencyBand = configData.frequency_band;
-            console.log('Using synced frequency_band:', frequencyBand);
           } else if (frequency) {
             // 根据频率值推断频段（备用逻辑）
             const freqNum = parseInt(frequency);
@@ -105,7 +103,6 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
             } else if (freqNum >= 24000 && freqNum <= 24814) {
               frequencyBand = ['2.4G'];
             }
-            console.log('Inferred frequency_band from frequency:', frequencyBand);
           }
           
           // 根据带宽值确定带宽显示
@@ -136,20 +133,9 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
             frequencyHopping: frequencyHopping, // 同步当前频跳状态
           });
           
-          console.log('Set wireless config:', {
-            currentFrequencyBand: frequencyBand,
-            currentBandwidth: configData.bandwidth || '1.4M',
-            currentBuildingChain: configData.building_chain || '',
-            currentFrequencyHopping: configData.frequency_hopping || false,
-            configFrequencyBand: [], // Setting Value保持为空
-            rawFrequencyHopping: configData.frequency_hopping,
-            parsedFrequencyHopping: frequencyHopping,
-          });
         } else {
-          console.log('No wireless config data found, using defaults');
         }
       } catch (error) {
-        console.error('Failed to fetch wireless config:', error);
       }
     };
     
@@ -158,7 +144,6 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
     // 监听设备配置同步事件
     const handleDeviceConfigSync = (event: CustomEvent) => {
       if (event.detail && event.detail.deviceId === Number(device.id)) {
-        console.log('Wireless config: Received sync event, refreshing data...');
         fetchConfig();
       }
     };
@@ -169,6 +154,85 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
       window.removeEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
     };
   }, [device.id]);
+
+  // mesh本地状态
+  const isMesh = device.board_type && device.board_type.toLowerCase().includes('mesh');
+  const [meshLocal, setMeshLocal] = useState<any>(null);
+  const [meshSyncLoading, setMeshSyncLoading] = useState(false);
+
+  // useEffect中首次加载只查本地
+  // useEffect(() => {
+  //   if (isMesh) {
+  //     const fetchLocal = async () => {
+  //       setLoading(true);
+  //       try {
+  //         const response = await deviceConfigAPI.getWirelessConfig(Number(device.id));
+  //         if (response && response.data && response.data.config) {
+  //           setMeshLocal(response.data.config);
+  //         } else {
+  //           setMeshLocal(null);
+  //         }
+  //       } catch {
+  //         setMeshLocal(null);
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     };
+  //     fetchLocal();
+  //     // mesh下不需要star分支的监听
+  //     return;
+  //   } else {
+  //     // star分支本地加载逻辑
+  //     const fetchConfig = async () => {
+  //       setLoading(true);
+  //       try {
+  //         const response = await deviceConfigAPI.getWirelessConfig(Number(device.id));
+  //         if (response && response.data && response.data.config) {
+  //           setConfig(response.data.config);
+  //         }
+  //       } catch {
+  //         // 错误处理
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     };
+  //     fetchConfig();
+  //     // 监听设备配置同步事件
+  //     const handleDeviceConfigSync = (event: CustomEvent) => {
+  //       if (event.detail && event.detail.deviceId === Number(device.id)) {
+  //         console.log('Wireless config: Received sync event, refreshing data...');
+  //         fetchConfig();
+  //       }
+  //     };
+  //     window.addEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
+  //     return () => {
+  //       window.removeEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
+  //     };
+  //   }
+  // }, [device.id]);
+
+  // mesh同步按钮逻辑
+  const handleMeshSync = async () => {
+    setMeshSyncLoading(true);
+    try {
+      // 这里只举例用AT^DRPC?、AT^DRPS?、AT^DFHC?，如有更多mesh无线指令可补充
+      const radioRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DRPC?');
+      const storeRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DRPS?');
+      const hopRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DFHC?');
+      // 解析响应并更新本地（实际应由后端同步到本地数据库）
+      // 这里只做前端展示
+      const meshConfig = {
+        radioParams: radioRes.data?.response || '',
+        radioStore: storeRes.data?.response || '',
+        hop: hopRes.data?.response || '',
+      };
+      setMeshLocal(meshConfig);
+    } catch (err) {
+      message.error(t('Failed to fetch mesh wireless config'));
+    } finally {
+      setMeshSyncLoading(false);
+    }
+  };
 
   // Frequency Band 子页面
   const renderFrequencyBand = () => (
@@ -392,7 +456,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
     </Card>
   );
 
-  // Frequency Hopping 子页面
+  // Frequency Hopping 子页面（只保留开关按钮，不展示mesh只读参数和下拉选择）
   const renderFrequencyHopping = () => (
     <Card title={t('Frequency Hopping')} className={styles.card}>
       <div className={styles.currentConfig}>
@@ -401,7 +465,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
           <div className={`${styles.statusIndicator} ${currentFrequencyHopping ? styles.statusActive : styles.statusInactive}`}>
             <div className={styles.statusDot}></div>
             <span className={styles.statusText}>
-              {currentFrequencyHopping ? 'Open' : 'Close'}
+              {currentFrequencyHopping ? t('Open') : t('Close')}
             </span>
           </div>
         </div>
@@ -414,7 +478,6 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
           <strong>{t('Frequency Hopping Control')}:</strong>
           <p>{t('Click the button below to enable or disable frequency hopping functionality.')}</p>
         </div>
-        
         <div className={styles.hoppingButtons}>
           <Button 
             type="primary"
@@ -425,11 +488,10 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
               try {
                 await deviceConfigAPI.setFrequencyHopping(Number(device.id), true);
                 setConfig({ ...config, frequencyHopping: true });
-                // 保存成功后更新当前配置状态
                 setCurrentFrequencyHopping(true);
-                message.success('Frequency hopping opened successfully');
+                message.success(t('Frequency hopping opened successfully'));
               } catch (error) {
-                message.error('Failed to open frequency hopping');
+                message.error(t('Failed to open frequency hopping'));
               }
             }}
             loading={loading}
@@ -437,7 +499,6 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
           >
             {t('Open')}
           </Button>
-          
           <Button 
             size="large"
             icon={<PauseCircleOutlined />}
@@ -446,11 +507,10 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
               try {
                 await deviceConfigAPI.setFrequencyHopping(Number(device.id), false);
                 setConfig({ ...config, frequencyHopping: false });
-                // 保存成功后更新当前配置状态
                 setCurrentFrequencyHopping(false);
-                message.success('Frequency hopping closed successfully');
+                message.success(t('Frequency hopping closed successfully'));
               } catch (error) {
-                message.error('Failed to close frequency hopping');
+                message.error(t('Failed to close frequency hopping'));
               }
             }}
             loading={loading}
@@ -463,6 +523,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
     </Card>
   );
 
+  // mesh和star都用相同UI和交互，底层保存/同步时区分指令
   return (
     <div className={styles.container}>
       <Card 
@@ -525,7 +586,6 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave, loading
                     });
                   }
                 } catch (error) {
-                  console.error('Error fetching wireless config:', error);
                 }
               };
               fetchConfig();

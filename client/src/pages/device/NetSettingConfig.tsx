@@ -151,9 +151,7 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        console.log('Fetching net setting config for device:', device);
         const response = await deviceConfigAPI.getNetSettingConfig(Number(device.id));
-        console.log('Net setting config response:', response);
         if (response && response.data && response.data.config) {
           const configData = response.data.config;
           setConfig(prev => ({
@@ -168,7 +166,6 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
           }));
         }
       } catch (error) {
-        console.error('Failed to fetch net setting config:', error);
         // 使用设备信息中的IP作为默认值
         setConfig(prev => ({
           ...prev,
@@ -182,7 +179,6 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
     // 监听设备配置同步事件
     const handleDeviceConfigSync = (event: CustomEvent) => {
       if (event.detail && event.detail.deviceId === Number(device.id)) {
-        console.log('Net setting config: Received sync event, refreshing data...');
         fetchConfig();
       }
     };
@@ -196,7 +192,6 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
 
   const handleSubmit = async (values: any) => {
     try {
-      console.log('Submitting new IP:', values.newIP);
       await onSave({ ip: values.newIP });
       message.success(t('IP address updated successfully'));
       // 更新当前 IP 显示
@@ -207,7 +202,6 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
       }));
       form.resetFields();
     } catch (error) {
-      console.error('Failed to update IP address:', error);
       message.error(t('Failed to update IP address'));
     }
   };
@@ -256,7 +250,7 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
                     }));
                   }
                 } catch (error) {
-                  console.error('Error fetching net setting config:', error);
+                  // console.error('Error fetching net setting config:', error);
                 }
               };
               fetchConfig();

@@ -13,7 +13,7 @@ const DeviceList: React.FC = () => {
   // 设备类型选项
   const deviceTypeOptions = [
     { label: '单板 1.0', value: 'board_1.0' },
-    { label: '单板 6680', value: 'board_6680' },
+    { label: '单板 2.0 Star', value: 'board_2.0_star' },
   ];
 
   // 获取设备列表
@@ -75,8 +75,9 @@ const DeviceList: React.FC = () => {
       dataIndex: 'type',
       key: 'type',
       render: (type: string) => {
-        const option = deviceTypeOptions.find(opt => opt.value === type);
-        return option ? option.label : type;
+        if (type === 'master') return '主设备';
+        if (type === 'slave') return '从设备';
+        return type;
       },
     },
     {

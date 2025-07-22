@@ -712,11 +712,42 @@ func (h *DeviceHandler) SetBandwidth(c *gin.Context) {
 		return
 	}
 
+	// 先读取当前频点和功率
+	getParamsResp, err := h.deviceCommService.SendATCommand(device.ID, "AT^DRPC?")
+	var currentFreq, currentPower string
+	if err == nil && strings.Contains(getParamsResp, "^DRPC:") {
+		parts := strings.Split(getParamsResp, "^DRPC:")
+		if len(parts) > 1 {
+			value := strings.TrimSpace(parts[1])
+			value = strings.Split(value, "\r")[0]
+			value = strings.Split(value, "\n")[0]
+			values := strings.Split(value, ",")
+			if len(values) >= 3 {
+				currentFreq = strings.TrimSpace(values[0])
+				currentPower = strings.Trim(strings.TrimSpace(values[2]), "\"")
+			}
+		}
+	}
+	if currentFreq == "" {
+		currentFreq = "24020" // 默认频点
+	}
+	if currentPower == "" {
+		currentPower = "27" // 默认功率
+	}
+
 	// 发送AT指令设置带宽 (使用AT^DRPS存储到NVRAM)
-	atCmd := fmt.Sprintf("AT^DRPS=24020,%d,\"27\"", bandwidthValue)
-	_, err = h.deviceCommService.SendATCommand(device.ID, atCmd)
+	atCmdStore := fmt.Sprintf("AT^DRPS=%s,%d,\"%s\"", currentFreq, bandwidthValue, currentPower)
+	_, err = h.deviceCommService.SendATCommand(device.ID, atCmdStore)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send AT command"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send AT^DRPS command"})
+		return
+	}
+
+	// 同时发送AT^DRPC实时生效
+	atCmdActive := fmt.Sprintf("AT^DRPC=%s,%d,\"%s\"", currentFreq, bandwidthValue, currentPower)
+	_, err = h.deviceCommService.SendATCommand(device.ID, atCmdActive)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send AT^DRPC command"})
 		return
 	}
 

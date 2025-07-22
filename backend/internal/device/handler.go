@@ -144,13 +144,28 @@ func (h *Handler) handleCommand(c *gin.Context) {
 		return
 	}
 
+	// 支持mesh/通用AT指令直发
+	type rawATReq struct {
+		RawATCommand string `json:"raw_at_command"`
+	}
+	var rawReq rawATReq
+	if err := c.ShouldBindJSON(&rawReq); err == nil && rawReq.RawATCommand != "" {
+		resp, err := h.service.SendRawATCommand(device, rawReq.RawATCommand)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
 	// 验证参数
 	if err := req.ValidateParameters(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 发送命令
+	// 发送命令（star/mesh映射表机制）
 	resp, err := h.service.SendCommand(device, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -174,7 +189,7 @@ func (h *Handler) listATCommandMappings(c *gin.Context) {
 
 // addATCommandMapping 添加AT指令映射
 func (h *Handler) addATCommandMapping(c *gin.Context) {
-	var mapping ATCommandMapping
+	var mapping model.ATCommandMapping
 	if err := c.ShouldBindJSON(&mapping); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -196,7 +211,7 @@ func (h *Handler) updateATCommandMapping(c *gin.Context) {
 		return
 	}
 
-	var mapping ATCommandMapping
+	var mapping model.ATCommandMapping
 	if err := c.ShouldBindJSON(&mapping); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -240,10 +255,23 @@ func (h *Handler) CreateDevice(c *gin.Context) {
 	device.Status = "offline"
 	device.LastSeen = time.Now()
 
-	if err := h.service.CreateDevice(&device); err != nil {
+	// 转为device.Device类型
+	dev := Device{
+		NodeID:      device.NodeID,
+		Name:        device.Name,
+		Type:        device.Type,
+		BoardType:   device.BoardType,
+		IP:          device.IP,
+		Status:      device.Status,
+		Location:    device.Location,
+		Description: device.Description,
+		LastSeen:    device.LastSeen,
+	}
+
+	if err := h.service.SaveDevice(&dev); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, device)
+	c.JSON(http.StatusCreated, dev)
 }

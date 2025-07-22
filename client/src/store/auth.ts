@@ -24,18 +24,22 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
   initialize: async () => {
     try {
-      console.log('Auth: Starting initialization...');
       set({ loading: true, initialized: false });
-      
-      // 清除所有认证数据，强制用户重新登录
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (token && userStr) {
+        try {
+          await authAPI.validateToken();
+          set({ user: JSON.parse(userStr), token, loading: false, initialized: true });
+        } catch {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
-      console.log('Auth: Cleared all auth data, requiring re-login');
+          set({ user: null, token: null, loading: false, initialized: true });
+        }
+      } else {
       set({ user: null, token: null, loading: false, initialized: true });
+      }
     } catch (error) {
-      console.error('Initialization error:', error);
-      // 出错时清除所有认证数据
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       set({ user: null, token: null, loading: false, initialized: true });
@@ -54,7 +58,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
       set({ user: response.data.user, token: response.data.token, loading: false });
       return response.data;
     } catch (error: any) {
-      console.error('Login error:', error);
       const errorMessage = error.response?.data?.error || 'Login failed';
       set({ error: errorMessage, loading: false });
       throw error;
@@ -79,7 +82,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
       
       return response.data;
     } catch (error) {
-      console.error('Register error:', error);
       set({ loading: false, error: 'Registration failed' });
       throw error;
     }

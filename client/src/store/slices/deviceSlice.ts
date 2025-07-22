@@ -135,13 +135,10 @@ export const updateDevice = createAsyncThunk(
 export const deleteDevice = createAsyncThunk(
   'devices/deleteDevice',
   async (id: number) => {
-    console.log('deleteDevice thunk called with id:', id);
     try {
       await deviceAPI.deleteDevice(id);
-      console.log('deviceAPI.deleteDevice completed successfully');
       return id;
     } catch (error) {
-      console.error('Error in deleteDevice thunk:', error);
       throw error;
     }
   }
@@ -205,10 +202,7 @@ const deviceSlice = createSlice({
         }
       })
       .addCase(deleteDevice.fulfilled, (state, action: PayloadAction<number>) => {
-        console.log('deleteDevice.fulfilled reducer called with id:', action.payload);
-        console.log('Devices before deletion:', state.devices.length);
         state.devices = state.devices.filter((d) => d.id !== action.payload);
-        console.log('Devices after deletion:', state.devices.length);
         if (state.selectedDevice?.id === action.payload) {
           state.selectedDevice = null;
         }

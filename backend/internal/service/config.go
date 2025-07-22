@@ -106,7 +106,7 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 					if val, err := strconv.Atoi(config.Value); err == nil {
 						configMap[config.Key] = val
 					} else {
-						configMap[config.Key] = config.Value
+						configMap[config.Key] = 0 // 兜底为0（None）
 					}
 				} else {
 					configMap[config.Key] = config.Value
@@ -157,12 +157,10 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 				case "frequency_band":
 					// 特殊处理frequency_band字段，确保它是数组格式
 					if config.Value != "" {
-						// 尝试解析JSON数组
 						var bands []string
 						if err := json.Unmarshal([]byte(config.Value), &bands); err == nil {
 							configMap["frequency_band"] = bands
 						} else {
-							// 如果不是JSON格式，直接使用原始值
 							configMap["frequency_band"] = config.Value
 						}
 					}
@@ -176,9 +174,8 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 					configMap[config.Key] = config.Value
 				}
 			}
-			return configMap, nil
+			return configMap, nil // 只要有 device_configs 就直接返回
 		}
-
 		// 如果没有同步数据，再尝试从WirelessConfig表获取
 		var wirelessConfig model.WirelessConfig
 		err = s.db.Where("device_id = ?", deviceID).First(&wirelessConfig).Error
@@ -233,12 +230,9 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		var deviceConfigs []model.DeviceConfig
 		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
 		if err == nil && len(deviceConfigs) > 0 {
-			// 将DeviceConfig数据转换为UpDownConfig格式
-			configMap := make(map[string]interface{})
+			// 只返回current_setting字段
 			for _, config := range deviceConfigs {
-				// 将tdd_config字段映射为前端期望的字段名
 				if config.Key == "tdd_config" {
-					// 将数值转换为对应的TDD配置字符串
 					var tddSetting string
 					switch config.Value {
 					case "0":
@@ -252,13 +246,11 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 					default:
 						tddSetting = config.Value
 					}
-					configMap["current_setting"] = tddSetting
-					configMap["setting"] = tddSetting
-				} else {
-					configMap[config.Key] = config.Value
+					return map[string]interface{}{"current_setting": tddSetting}, nil
 				}
 			}
-			return configMap, nil
+			// 没有tdd_config字段时返回空
+			return map[string]interface{}{"current_setting": ""}, nil
 		}
 
 		// 如果没有同步数据，再尝试从UpDownConfig表获取
@@ -267,16 +259,13 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 返回默认的UpDown配置，不创建数据库记录
-				return model.UpDownConfig{
-					DeviceID:       deviceID,
-					CurrentSetting: "",
-					Setting:        "",
-				}, nil
+				return map[string]interface{}{"current_setting": ""}, nil
 			} else {
 				return nil, err
 			}
 		}
-		return upDownConfig, nil
+		// 只返回 current_setting
+		return map[string]interface{}{"current_setting": upDownConfig.CurrentSetting}, nil
 
 	case ConfigCategoryDebug:
 		// 优先从DeviceConfig表中读取同步的数据
@@ -533,6 +522,10 @@ func (s *ConfigService) SaveDeviceConfigs(deviceID uint, category string, config
 				} else {
 					updateData[k] = v
 				}
+			}
+			// 新增：同步更新 bandwidth 字段
+			if bw, ok := configs["bandwidth"]; ok {
+				updateData["bandwidth"] = bw
 			}
 			log.Printf("Update data: %+v", updateData)
 

@@ -85,4 +85,53 @@
 
 .container :global(.ant-switch) {
   margin-right: 8px;
+}
+
+.device-info-inline-card {
+  display: flex;
+  align-items: center;
+  background: #f7f9fb;
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-size: 16px;
+  color: #3b82f6;
+  box-shadow: 0 2px 8px #e6eaf1;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.device-info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.device-info-label {
+  color: #8a94a6;
+  font-weight: 500;
+}
+.device-info-value {
+  color: #2563eb;
+  font-weight: 600;
+}
+.device-info-divider {
+  color: #d0d7e5;
+  margin: 0 8px;
+  font-weight: 400;
+}
+
+.device-info-descriptions .ant-descriptions-item-label {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  letter-spacing: 0.5px;
+}
+.device-info-descriptions .ant-descriptions-item-content {
+  color: #222;
+  font-weight: 600;
+  font-size: 17px;
+}
+.device-info-descriptions .ant-descriptions-view {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #e6eaf1;
+  background: #fff;
 } 

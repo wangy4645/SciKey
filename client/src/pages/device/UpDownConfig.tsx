@@ -60,8 +60,8 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
         if (response && response.data && response.data.config) {
           const configData = response.data.config;
           setConfig({
-            currentSetting: configData.current_setting || configData.setting || '',
-            setting: configData.setting || '',
+            currentSetting: String(configData.current_setting || configData.setting || ''),
+            setting: String(configData.setting || ''),
           });
         }
       } catch (error) {
@@ -144,8 +144,8 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
                   if (response && response.data && response.data.config) {
                     const configData = response.data.config;
                     setConfig({
-                      currentSetting: configData.current_setting || configData.setting || '',
-                      setting: configData.setting || '',
+                      currentSetting: String(configData.current_setting || configData.setting || ''),
+                      setting: String(configData.setting || ''),
                     });
                   }
                 } catch (error) {
