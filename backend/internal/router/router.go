@@ -1,7 +1,6 @@
 package router
 
 import (
-	"backend/internal/db"
 	"backend/internal/handler"
 	"backend/internal/middleware"
 	"backend/internal/repository"
@@ -11,9 +10,10 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 
 	// Add CORS middleware
@@ -38,19 +38,19 @@ func SetupRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
-	// Create service instances
-	authService := service.NewAuthService()
-	deviceService := service.NewDeviceService()
-	deviceCommService := service.NewDeviceCommService(db.GetDB())
-	nodeService := service.NewNodeService()
-	deviceRepo := repository.NewDeviceRepository(db.GetDB())
-	configService := service.NewConfigService(db.GetDB(), deviceRepo)
-	topologyService := service.NewTopologyService(db.GetDB())
-	monitorService := service.NewMonitorService(db.GetDB())
+	// Create service instances, passing the DB connection
+	authService := service.NewAuthService(db)
+	deviceService := service.NewDeviceService(db)
+	deviceCommService := service.NewDeviceCommService(db)
+	nodeService := service.NewNodeService(db)
+	deviceRepo := repository.NewDeviceRepository(db)
+	configService := service.NewConfigService(db, deviceRepo)
+	topologyService := service.NewTopologyService(db)
+	monitorService := service.NewMonitorService(db)
 
 	// Create handler instances
 	authHandler := handler.NewAuthHandler(authService)
-	deviceHandler := handler.NewDeviceHandler(deviceService, deviceCommService, configService)
+	deviceHandler := handler.NewDeviceHandler(deviceService, deviceCommService, configService, topologyService) // Pass topologyService
 	nodeHandler := handler.NewNodeHandler(nodeService)
 	configHandler := handler.NewConfigHandler(configService)
 	topologyHandler := handler.NewTopologyHandler(topologyService)
@@ -91,6 +91,7 @@ func SetupRouter() *gin.Engine {
 		api.POST("/devices/:id/key", deviceHandler.SetKey)
 		api.GET("/devices/:id/check-status", deviceHandler.CheckDeviceStatus)
 		api.GET("/devices/check-all-status", deviceHandler.CheckAllDevicesStatus)
+		api.POST("/devices/:id/links", deviceHandler.ReportLinks) // New route for reporting links
 
 		// Wireless Configuration
 		api.GET("/devices/:id/wireless", deviceHandler.GetWirelessConfig)
@@ -155,6 +156,7 @@ func SetupRouter() *gin.Engine {
 
 		// Topology routes
 		api.GET("/topology", topologyHandler.GetTopology)
+		api.GET("/topology/graph", topologyHandler.GetTopologyGraph) // New route for graph data
 		api.PUT("/topology/nodes/:id/position", topologyHandler.UpdateNodePosition)
 		api.PUT("/topology/nodes/:id/signal", topologyHandler.UpdateNodeSignalStrength)
 		api.PUT("/topology/links/:id/signal", topologyHandler.UpdateLinkSignalStrength)

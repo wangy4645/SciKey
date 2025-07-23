@@ -1,7 +1,6 @@
 package service
 
 import (
-	"backend/internal/db"
 	"backend/internal/middleware"
 	"backend/internal/model"
 	"errors"
@@ -18,9 +17,9 @@ type AuthService struct {
 	db *gorm.DB
 }
 
-func NewAuthService() *AuthService {
+func NewAuthService(db *gorm.DB) *AuthService {
 	return &AuthService{
-		db: db.GetDB(),
+		db: db,
 	}
 }
 
@@ -101,22 +100,33 @@ func (s *AuthService) Login(username, password string) (string, *model.User, err
 		// Don't return error here, as login was successful
 	}
 
-	// Generate JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":  user.ID,
-		"username": user.Username,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	// Sign token with secret key
-	tokenString, err := token.SignedString([]byte(middleware.JWTSecret))
+	// Generate JWT token by calling the new dedicated method
+	tokenString, err := s.GenerateToken(user.ID, user.Username, time.Hour*24)
 	if err != nil {
-		log.Printf("Failed to generate token: %v", err)
-		return "", nil, fmt.Errorf("failed to sign token: %v", err)
+		log.Printf("Failed to generate token for user %s: %v", user.Username, err)
+		return "", nil, err
 	}
 
 	log.Printf("Login successful for user: %s", username)
 	return tokenString, &user, nil
+}
+
+// GenerateToken creates a new JWT token for a given userID and username with a specified duration.
+func (s *AuthService) GenerateToken(userID uint, username string, expiration time.Duration) (string, error) {
+	claims := jwt.MapClaims{
+		"user_id":  userID,
+		"username": username,
+		"exp":      time.Now().Add(expiration).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString([]byte(middleware.JWTSecret))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return tokenString, nil
 }
 
 func (s *AuthService) DeleteUser(username string) error {

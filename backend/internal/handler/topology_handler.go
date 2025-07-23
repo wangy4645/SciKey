@@ -29,6 +29,16 @@ func (h *TopologyHandler) GetTopology(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
+// GetTopologyGraph handles GET /api/topology/graph
+func (h *TopologyHandler) GetTopologyGraph(c *gin.Context) {
+	graphData, err := h.topologyService.GetTopologyGraph()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, graphData)
+}
+
 // UpdateNodePosition handles PUT /api/topology/nodes/:id/position
 func (h *TopologyHandler) UpdateNodePosition(c *gin.Context) {
 	nodeID, err := strconv.ParseUint(c.Param("id"), 10, 32)

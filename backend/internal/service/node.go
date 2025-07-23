@@ -1,7 +1,6 @@
 package service
 
 import (
-	"backend/internal/db"
 	"backend/internal/model"
 	"errors"
 
@@ -12,9 +11,9 @@ type NodeService struct {
 	db *gorm.DB
 }
 
-func NewNodeService() *NodeService {
+func NewNodeService(db *gorm.DB) *NodeService {
 	return &NodeService{
-		db: db.GetDB(),
+		db: db,
 	}
 }
 

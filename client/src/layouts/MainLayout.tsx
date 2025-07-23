@@ -174,7 +174,7 @@ const MainLayout: React.FC = () => {
           />
           {/* Logo区 */}
           <div style={{ padding: '8px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', background: '#e9edf3', borderRadius: 8 }}>
-            <img src="/icon.png" alt="logo" style={{ width: 40, height: 40, borderRadius: 6, marginRight: 14, opacity: 0.8 }} />
+            <img src="/icon.png" alt="logo" style={{ width: 40, height: 40, borderRadius: 6, marginRight: 14, opacity: 0.9, background: 'transparent' }} />
             <span style={{ fontWeight: 700, fontSize: 22, color: '#6b8fcf', letterSpacing: 1 }}>MESH MGMT</span>
         </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'stretch', overflowY: 'auto' }}>

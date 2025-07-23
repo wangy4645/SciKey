@@ -2,15 +2,13 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Card, Typography, Button, Descriptions, Tag, Space, message } from 'antd';
 import { SyncOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useDispatch, useSelector } from 'react-redux';
-import { Device } from '../types';
-import { fetchDevices } from '../store/slices/deviceSlice';
-import { AppDispatch, RootState } from '../store';
+import { forceCenter } from 'd3-force';
+import { topologyAPI } from '../services/api';
 import styles from './NetworkTopology.module.css';
 
 const { Title } = Typography;
 
-// 正确导入force-graph
+// Correctly import force-graph
 const ForceGraph2D = require('force-graph').default;
 
 interface GraphNode {
@@ -33,50 +31,69 @@ interface GraphLink {
   target: string;
 }
 
+interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
 const NetworkTopology: React.FC = () => {
   const { t } = useTranslation();
-  const dispatch = useDispatch<AppDispatch>();
-  const { devices, loading } = useSelector((state: RootState) => state.device);
+  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
 
-  // 刷新数据的回调函数
+  // Separate function for manual refresh, which shows a notification.
   const handleRefresh = useCallback(async () => {
-    try {
       setRefreshing(true);
-      await dispatch(fetchDevices());
+    try {
+      const response = await topologyAPI.getTopology();
+      const data = response.data;
+      if (data && Array.isArray(data.nodes) && Array.isArray(data.links)) {
+        setGraphData(data);
       message.success(t('Network topology refreshed successfully'));
+      } else {
+        console.error('Received malformed topology data from API:', data);
+        message.error(t('Failed to parse network topology data'));
+        setGraphData({ nodes: [], links: [] });
+      }
     } catch (error) {
+      console.error('Failed to refresh network topology', error);
       message.error(t('Failed to refresh network topology'));
+      setGraphData({ nodes: [], links: [] });
     } finally {
       setRefreshing(false);
     }
-  }, [dispatch]);
+  }, [t]);
 
-  // 组件初始化时获取数据
+  // Fetch initial data on component mount, without a success notification.
   useEffect(() => {
-    const initializeData = async () => {
-      try {
+    const fetchInitialData = async () => {
         setRefreshing(true);
-        await dispatch(fetchDevices());
+      try {
+        const response = await topologyAPI.getTopology();
+        const data = response.data;
+        if (data && Array.isArray(data.nodes) && Array.isArray(data.links)) {
+          setGraphData(data);
+        } else {
+          setGraphData({ nodes: [], links: [] });
+        }
       } catch (error) {
-        message.error(t('Failed to refresh network topology'));
+        setGraphData({ nodes: [], links: [] });
       } finally {
         setRefreshing(false);
       }
     };
+    fetchInitialData();
+  }, []); // Empty dependency array ensures this runs only once on mount.
     
-    initializeData();
-  }, [dispatch]);
-
-  // 初始化图形
+  // Initialize the graph
   const initializeGraph = useCallback(() => {
     if (!containerRef.current) return;
 
     try {
-      // 销毁现有图形实例
+      // Destroy existing graph instance
       if (graphRef.current) {
         graphRef.current.d3Force('charge', null);
         graphRef.current.d3Force('link', null);
@@ -84,11 +101,11 @@ const NetworkTopology: React.FC = () => {
         graphRef.current = null;
       }
 
-      // 创建新的图形实例
+      // Create new graph instance
       graphRef.current = ForceGraph2D()(containerRef.current)
         .nodeLabel('name')
         .nodeColor((node: GraphNode) => {
-          if (node.status === 'offline') return '#ff4d4f';
+          if (node.status.toLowerCase() === 'offline') return '#ff4d4f';
           return node.type === 'master' ? '#1890ff' : '#52c41a';
         })
         .nodeRelSize(8)
@@ -100,56 +117,33 @@ const NetworkTopology: React.FC = () => {
             containerRef.current.style.cursor = node ? 'pointer' : 'default';
           }
         });
+      
+      // Add a centering force to keep the graph in the middle
+      graphRef.current.d3Force('center', forceCenter());
 
     } catch (error) {
       message.error(t('Failed to initialize network topology'));
     }
   }, [t]);
 
-  // 更新图形数据
+  // Update graph data
   const updateGraphData = useCallback(() => {
-    if (!graphRef.current || !devices || devices.length === 0) {
-      return;
+    if (graphRef.current) {
+      graphRef.current.graphData(graphData);
     }
+  }, [graphData]);
 
-    try {
-      const nodes: GraphNode[] = devices
-        .filter((device: Device) => device && device.id)
-        .map((device: Device) => ({
-          id: String(device.id),
-          nodeId: String(device.node_id || ''),
-          name: String(device.name || ''),
-          type: device.type === 'master' ? 'master' : 'slave',
-          status: device.status === 'online' ? 'online' : 'offline',
-          ip: String(device.ip || ''),
-          location: String((device as any)?.location || ''),
-          parent_id: Number((device as any)?.parent_id) || undefined,
-        }));
-
-      const links: GraphLink[] = devices
-        .filter((device: Device) => device && device.id && (device as any)?.parent_id)
-        .map((device: Device) => ({
-          source: String((device as any)?.parent_id),
-          target: String(device.id),
-        }));
-
-      graphRef.current.graphData({ nodes, links });
-    } catch (error) {
-      message.error(t('Failed to update network topology'));
-    }
-  }, [devices, t]);
-
-  // 初始化图形
+  // Initialize graph
   useEffect(() => {
     initializeGraph();
   }, [initializeGraph]);
 
-  // 更新图形数据
+  // Update graph data
   useEffect(() => {
     updateGraphData();
   }, [updateGraphData]);
 
-  // 清理函数
+  // Cleanup function
   useEffect(() => {
     return () => {
       if (graphRef.current) {
@@ -191,7 +185,7 @@ const NetworkTopology: React.FC = () => {
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label={t('Status')}>
-                <Tag color={selectedNode.status === 'online' ? 'success' : 'error'}>
+                <Tag color={selectedNode.status.toLowerCase() === 'online' ? 'success' : 'error'}>
                   {selectedNode.status.toUpperCase()}
                 </Tag>
               </Descriptions.Item>

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"backend/internal/db"
 	"backend/internal/model"
 	"errors"
 	"strings"
@@ -13,9 +12,9 @@ type DeviceService struct {
 	db *gorm.DB
 }
 
-func NewDeviceService() *DeviceService {
+func NewDeviceService(db *gorm.DB) *DeviceService {
 	return &DeviceService{
-		db: db.GetDB(),
+		db: db,
 	}
 }
 

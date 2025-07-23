@@ -224,6 +224,13 @@ export const deviceAPI = {
   },
 };
 
+// Topology API
+export const topologyAPI = {
+  getTopology: () => {
+    return api.get(`${API_BASE_URL}/topology/graph`);
+  },
+};
+
 // Device Configuration API
 export const deviceConfigAPI = {
   // Network State Configuration

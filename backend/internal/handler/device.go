@@ -18,13 +18,20 @@ type DeviceHandler struct {
 	deviceService     *service.DeviceService
 	deviceCommService *service.DeviceCommService
 	configService     *service.ConfigService
+	topologyService   *service.TopologyService // Add TopologyService
 }
 
-func NewDeviceHandler(deviceService *service.DeviceService, deviceCommService *service.DeviceCommService, configService *service.ConfigService) *DeviceHandler {
+func NewDeviceHandler(
+	deviceService *service.DeviceService,
+	deviceCommService *service.DeviceCommService,
+	configService *service.ConfigService,
+	topologyService *service.TopologyService, // Add TopologyService to parameters
+) *DeviceHandler {
 	return &DeviceHandler{
 		deviceService:     deviceService,
 		deviceCommService: deviceCommService,
 		configService:     configService,
+		topologyService:   topologyService, // Initialize TopologyService
 	}
 }
 
@@ -1162,4 +1169,31 @@ func (h *DeviceHandler) CheckAllDevicesStatus(c *gin.Context) {
 		"unknown":    unknownCount,
 		"checked_at": time.Now(),
 	})
+}
+
+// ReportLinks allows a device to report its currently visible neighbors, updating the topology.
+func (h *DeviceHandler) ReportLinks(c *gin.Context) {
+	idStr := c.Param("id")
+	sourceDeviceID, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source device ID"})
+		return
+	}
+
+	var req struct {
+		Neighbors []string `json:"neighbors"` // Expecting a list of neighbor NodeIDs
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
+		return
+	}
+
+	// Call the service to update the links
+	err = h.topologyService.UpdateDeviceLinks(uint(sourceDeviceID), req.Neighbors)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update device links: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Device links updated successfully"})
 }

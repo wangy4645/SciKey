@@ -2,6 +2,7 @@ package service
 
 import (
 	"backend/internal/model"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -81,4 +82,96 @@ func (s *TopologyService) RemoveNode(nodeID uint) error {
 // RemoveLink removes a link from the topology
 func (s *TopologyService) RemoveLink(linkID uint) error {
 	return s.db.Delete(&model.TopologyLink{}, linkID).Error
+}
+
+// GetTopologyGraph retrieves and formats data for the force-graph
+func (s *TopologyService) GetTopologyGraph() (*model.GraphData, error) {
+	var devices []model.Device
+	if err := s.db.Find(&devices).Error; err != nil {
+		return nil, err
+	}
+
+	nodes := make([]*model.GraphNode, 0)
+	for _, device := range devices {
+		// Ensure device ID is not nil and valid before processing
+		if device.ID == 0 {
+			continue
+		}
+
+		node := &model.GraphNode{
+			ID:       strconv.Itoa(int(device.ID)),
+			NodeID:   device.NodeID,
+			Name:     device.Name,
+			Type:     device.Type,
+			Status:   device.Status,
+			IP:       device.IP,
+			Location: device.Location,
+		}
+		nodes = append(nodes, node)
+	}
+
+	var deviceLinks []model.DeviceLink
+	if err := s.db.Find(&deviceLinks).Error; err != nil {
+		return nil, err
+	}
+
+	links := make([]*model.GraphLink, 0)
+	for _, deviceLink := range deviceLinks {
+		link := &model.GraphLink{
+			Source: strconv.Itoa(int(deviceLink.SourceDeviceID)),
+			Target: strconv.Itoa(int(deviceLink.TargetDeviceID)),
+		}
+		links = append(links, link)
+	}
+
+	return &model.GraphData{
+		Nodes: nodes,
+		Links: links,
+	}, nil
+}
+
+// UpdateDeviceLinks handles the reconciliation of reported neighbor links for a specific device.
+func (s *TopologyService) UpdateDeviceLinks(sourceDeviceID uint, neighborNodeIDs []string) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Delete all existing links originating from this device.
+		// This handles cases where a neighbor is no longer reachable.
+		if err := tx.Where("source_device_id = ?", sourceDeviceID).Delete(&model.DeviceLink{}).Error; err != nil {
+			return err
+		}
+
+		// 2. Find the device IDs for the reported neighbor NodeIDs.
+		var neighborDevices []model.Device
+		if len(neighborNodeIDs) > 0 {
+			if err := tx.Where("node_id IN ?", neighborNodeIDs).Find(&neighborDevices).Error; err != nil {
+				return err
+			}
+		}
+
+		// Create a map for quick lookup of NodeID to Device ID
+		nodeIDtoDeviceID := make(map[string]uint)
+		for _, dev := range neighborDevices {
+			nodeIDtoDeviceID[dev.NodeID] = dev.ID
+		}
+
+		// 3. Create new links for the currently reported neighbors.
+		for _, neighborNodeID := range neighborNodeIDs {
+			targetDeviceID, ok := nodeIDtoDeviceID[neighborNodeID]
+			if !ok {
+				// If a reported neighbor node_id doesn't exist in our DB, we skip it.
+				// Optionally, log this event for monitoring.
+				continue
+			}
+
+			newLink := model.DeviceLink{
+				SourceDeviceID: sourceDeviceID,
+				TargetDeviceID: targetDeviceID,
+			}
+			// Using FirstOrCreate to prevent duplicate links, though the initial delete should handle this.
+			if err := tx.Where(newLink).FirstOrCreate(&newLink).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

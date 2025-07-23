@@ -54,3 +54,27 @@ type Link struct {
 	Status         string    `gorm:"not null" json:"status"`
 	LastUpdated    time.Time `json:"last_updated"`
 }
+
+// GraphNode represents a node in the force-graph
+type GraphNode struct {
+	ID       string `json:"id"`
+	NodeID   string `json:"nodeId"`
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Status   string `json:"status"`
+	IP       string `json:"ip"`
+	Location string `json:"location"`
+	ParentID *uint  `json:"parent_id,omitempty"`
+}
+
+// GraphLink represents a link in the force-graph
+type GraphLink struct {
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+// GraphData represents the data structure for force-graph
+type GraphData struct {
+	Nodes []*GraphNode `json:"nodes"`
+	Links []*GraphLink `json:"links"`
+}
