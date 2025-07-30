@@ -141,13 +141,6 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
 
       <div className={styles.controlDescription}>
         <strong>{t('Debug Switch Control')}:</strong>
-        <p>{t('Click the button below to enable or disable debug functionality.')}</p>
-        <Alert
-          message={t('Note: Query and report every 5 seconds.')}
-          type="info"
-          showIcon
-          style={{ marginTop: 8 }}
-        />
       </div>
       
       <div className={styles.hoppingButtons}>
@@ -199,124 +192,103 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
 
   // DRPR Reporting 子页面
   const renderDrprReporting = () => (
-    <Card 
-      title={
-        <div className={styles.drprHeader}>
-          <span>{t('DRPR Reporting')}</span>
-          <div className={styles.drprStatus}>
-            <span>{t('Status')}:</span>
-            <div className={`${styles.drprStatusIndicator} ${config.drprReporting ? styles.drprStatusActive : styles.drprStatusInactive}`}>
-              <div className={styles.drprStatusDot}></div>
-              <span>{config.drprReporting ? t('Start') : t('Stop')}</span>
-            </div>
+    <Card title={t('DRPR Reporting')} className={styles.card}>
+      <Row gutter={16} align="middle" style={{ marginLeft: '32px' }}>
+        {/* 左侧控制按钮 */}
+        <Col flex="none" style={{ display: 'flex', alignItems: 'center' }}>
+          <div className={`${styles.hoppingButtons} ${styles.drprButtons}`} style={{ marginLeft: 0 }}>
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlayCircleOutlined />}
+              className={`${styles.hoppingButton} ${styles.openButton} ${config.drprReporting ? styles.activeButton : ''}`}
+              onClick={handleDrprReportingToggle}
+              loading={loading}
+              disabled={config.drprReporting}
+            >
+              {t('Start')}
+            </Button>
+            <Button
+              size="large"
+              icon={<PauseCircleOutlined />}
+              className={`${styles.hoppingButton} ${styles.closeButton} ${!config.drprReporting ? styles.activeButton : ''}`}
+              onClick={handleDrprReportingToggle}
+              loading={loading}
+              disabled={!config.drprReporting}
+            >
+              {t('Pause')}
+            </Button>
           </div>
-        </div>
-      } 
-      className={styles.card}
-    >
-      <div className={styles.compactLayout}>
-        <div className={styles.compactGuide}>
-          <div className={styles.rsrpSnrGuide}>
-            <Title level={5}>{t('RSRP & SNR Quality Guide')}</Title>
-            <div className={styles.qualityGrid}>
-              <div className={styles.qualitySection}>
-                <Title level={5}>{t('RSRP (Reference Signal Received Power)')}</Title>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagRed}`}>{t('Very Poor')}</span>
-                  <span className={styles.qualityValue}>&lt; -124 dBm</span>
+        </Col>
+
+        {/* 中间空白 */}
+        <Col flex="32px" />
+
+        {/* 右侧信号质量图例 */}
+        <Col flex="auto">
+          <Row gutter={32} justify="start">
+            {/* RSRP图例 */}
+            <Col span={10}>
+              <div className={styles.signalLegend}>
+                <h4>{t('RSRP Threshold')}</h4>
+                <div className={styles.legendItem} style={{ backgroundColor: '#d32f2f' }}>
+                  {t('RSRP Extremely Poor')} &lt;-124
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagOrange}`}>{t('Poor')}</span>
-                  <span className={styles.qualityValue}>-124 ~ -104 dBm</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#f44336' }}>
+                  {t('RSRP Poor')} -124~-104
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagGold}`}>{t('Fair')}</span>
-                  <span className={styles.qualityValue}>-103 ~ -85 dBm</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#ff9800' }}>
+                  {t('RSRP Low')} -103~-85
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagBlue}`}>{t('Good')}</span>
-                  <span className={styles.qualityValue}>-84 ~ -65 dBm</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#ffeb3b' }}>
+                  {t('RSRP Medium')} -84~-65
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagGreen}`}>{t('Excellent')}</span>
-                  <span className={styles.qualityValue}>&gt; -64 dBm</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#b7eb8f' }}>
+                  {t('RSRP High')} &gt;-64
                 </div>
               </div>
-              
-              <div className={styles.qualitySection}>
-                <Title level={5}>{t('SNR (Signal-to-Noise Ratio)')}</Title>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagRed}`}>{t('Very Poor')}</span>
-                  <span className={styles.qualityValue}>&lt; 0 dB</span>
+            </Col>
+
+            {/* SNR图例 */}
+            <Col span={10}>
+              <div className={styles.signalLegend}>
+                <h4>{t('SNR Threshold')}</h4>
+                <div className={styles.legendItem} style={{ backgroundColor: '#d32f2f' }}>
+                  {t('SNR Extremely Poor')} &lt;0
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagOrange}`}>{t('Poor')}</span>
-                  <span className={styles.qualityValue}>0 ~ 6 dB</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#f44336' }}>
+                  {t('SNR Poor')} 0~6
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagGold}`}>{t('Fair')}</span>
-                  <span className={styles.qualityValue}>7 ~ 12 dB</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#ff9800' }}>
+                  {t('SNR Low')} 7~12
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagBlue}`}>{t('Good')}</span>
-                  <span className={styles.qualityValue}>13 ~ 18 dB</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#ffeb3b' }}>
+                  {t('SNR Medium')} 13~18
                 </div>
-                <div className={styles.qualityItem}>
-                  <span className={`${styles.qualityTag} ${styles.qualityTagGreen}`}>{t('Excellent')}</span>
-                  <span className={styles.qualityValue}>&gt; 19 dB</span>
+                <div className={styles.legendItem} style={{ backgroundColor: '#b7eb8f' }}>
+                  {t('SNR High')} &gt;19
                 </div>
               </div>
-            </div>
-          </div>
+            </Col>
+          </Row>
+        </Col>
+      </Row>
 
-          <div className={styles.controlSection}>
-            <div className={styles.controlDescription}>
-              <strong>{t('DRPR Reporting Control')}:</strong>
-              <p>{t('Click the button below to start or stop DRPR reporting.')}</p>
-            </div>
-            
-            <div className={styles.hoppingButtons}>
-              <Button 
-                type="primary"
-                size="large"
-                icon={<PlayCircleOutlined />}
-                className={`${styles.hoppingButton} ${styles.openButton} ${config.drprReporting ? styles.activeButton : ''}`}
-                onClick={handleDrprReportingToggle}
-                loading={loading}
-                disabled={config.drprReporting}
-              >
-                {t('Start')}
-              </Button>
-              
-              <Button 
-                size="large"
-                icon={<PauseCircleOutlined />}
-                className={`${styles.hoppingButton} ${styles.closeButton} ${!config.drprReporting ? styles.activeButton : ''}`}
-                onClick={handleDrprReportingToggle}
-                loading={loading}
-                disabled={!config.drprReporting}
-              >
-                {t('Stop')}
-              </Button>
-            </div>
-          </div>
-        </div>
+      <Divider />
 
-        <div className={styles.messagesSection}>
-          <Title level={5}>{t('DRPR Messages')}:</Title>
-          <div className={styles.messagesContainer}>
-            {drprMessages.length > 0 ? (
-              drprMessages.map((msg, index) => (
-                <div key={index} className={styles.messageItem}>
-                  <span className={styles.messageTimestamp}>[{new Date().toLocaleTimeString()}]</span>
-                  <span className={styles.messageContent}>{msg}</span>
-                </div>
-              ))
-            ) : (
-              <Text type="secondary">{t('No DRPR messages received yet...')}</Text>
-            )}
-          </div>
-        </div>
+      {/* 数据表格 */}
+      <div className={styles.dataTable}>
+        <Table
+          columns={[
+            { title: 'IP', dataIndex: 'ip', key: 'ip' },
+            { title: 'RSRP', dataIndex: 'rsrp', key: 'rsrp' },
+            { title: 'SNR', dataIndex: 'snr', key: 'snr' },
+            { title: 'DISTANCE', dataIndex: 'distance', key: 'distance' },
+          ]}
+          dataSource={[]}
+          pagination={false}
+          size="small"
+        />
       </div>
     </Card>
   );

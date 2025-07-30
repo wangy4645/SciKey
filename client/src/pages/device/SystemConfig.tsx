@@ -26,6 +26,7 @@ import {
 import styles from './SystemConfig.module.css';
 import { Device } from '../../types';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
+import { useTranslation } from 'react-i18next';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -108,6 +109,8 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     },
   });
 
+  const { t } = useTranslation();
+
   // 获取系统配置
   useEffect(() => {
     const fetchConfig = async () => {
@@ -180,7 +183,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
         </Select>
       </Form.Item>
 
-      <Form.Item label="Language">
+      <Form.Item label={t('Language')}>
         <Select
           value={system.language}
           onChange={(value) =>
@@ -190,14 +193,14 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
             })
           }
         >
-          <Option value="en_US">English</Option>
-          <Option value="zh_CN">Chinese</Option>
-          <Option value="ja_JP">Japanese</Option>
-          <Option value="ko_KR">Korean</Option>
+          <Option value="en_US">{t('English')}</Option>
+          <Option value="zh_CN">{t('Chinese')}</Option>
+          <Option value="ja_JP">{t('Japanese')}</Option>
+          <Option value="ko_KR">{t('Korean')}</Option>
         </Select>
       </Form.Item>
 
-      <Form.Item label="Auto Update">
+      <Form.Item label={t('Auto Update')}>
         <Switch
           checked={system.autoUpdate}
           onChange={(checked) =>
@@ -210,7 +213,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
       </Form.Item>
 
       {system.autoUpdate && (
-        <Form.Item label="Update Schedule">
+        <Form.Item label={t('Update Schedule')}>
           <Select
             value={system.updateSchedule}
             onChange={(value) =>
@@ -220,9 +223,9 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
               })
             }
           >
-            <Option value="daily">Daily</Option>
-            <Option value="weekly">Weekly</Option>
-            <Option value="monthly">Monthly</Option>
+            <Option value="daily">{t('Daily')}</Option>
+            <Option value="weekly">{t('Weekly')}</Option>
+            <Option value="monthly">{t('Monthly')}</Option>
           </Select>
         </Form.Item>
       )}
@@ -231,7 +234,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
 
   const renderBackupSettings = (backup: SystemConfig['backup']) => (
     <>
-      <Form.Item label="Enable Backup">
+      <Form.Item label={t('Enable Backup')}>
         <Switch
           checked={backup.enabled}
           onChange={(checked) =>
@@ -245,7 +248,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
 
       {backup.enabled && (
         <>
-          <Form.Item label="Backup Schedule">
+          <Form.Item label={t('Backup Schedule')}>
             <Select
               value={backup.schedule}
               onChange={(value) =>
@@ -255,13 +258,13 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 })
               }
             >
-              <Option value="daily">Daily</Option>
-              <Option value="weekly">Weekly</Option>
-              <Option value="monthly">Monthly</Option>
+              <Option value="daily">{t('Daily')}</Option>
+              <Option value="weekly">{t('Weekly')}</Option>
+              <Option value="monthly">{t('Monthly')}</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label="Retention Period (days)">
+          <Form.Item label={t('Retention Period (days)')}>
             <InputNumber
               min={1}
               max={365}
@@ -275,7 +278,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Backup Destination">
+          <Form.Item label={t('Backup Destination')}>
             <Select
               value={backup.destination}
               onChange={(value) =>
@@ -285,9 +288,9 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 })
               }
             >
-              <Option value="local">Local Storage</Option>
-              <Option value="remote">Remote Server</Option>
-              <Option value="cloud">Cloud Storage</Option>
+              <Option value="local">{t('Local Storage')}</Option>
+              <Option value="remote">{t('Remote Server')}</Option>
+              <Option value="cloud">{t('Cloud Storage')}</Option>
             </Select>
           </Form.Item>
         </>
@@ -297,7 +300,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
 
   const renderMaintenanceSettings = (maintenance: SystemConfig['maintenance']) => (
     <>
-      <Form.Item label="Enable Maintenance">
+      <Form.Item label={t('Enable Maintenance')}>
         <Switch
           checked={maintenance.enabled}
           onChange={(checked) =>
@@ -311,7 +314,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
 
       {maintenance.enabled && (
         <>
-          <Form.Item label="Maintenance Schedule">
+          <Form.Item label={t('Maintenance Schedule')}>
             <Select
               value={maintenance.schedule}
               onChange={(value) =>
@@ -321,9 +324,9 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 })
               }
             >
-              <Option value="daily">Daily</Option>
-              <Option value="weekly">Weekly</Option>
-              <Option value="monthly">Monthly</Option>
+              <Option value="daily">{t('Daily')}</Option>
+              <Option value="weekly">{t('Weekly')}</Option>
+              <Option value="monthly">{t('Monthly')}</Option>
             </Select>
           </Form.Item>
 

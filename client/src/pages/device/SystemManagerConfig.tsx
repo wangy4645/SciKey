@@ -25,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import styles from './SystemManagerConfig.module.css';
 import { Device } from '../../types';
+import { useTranslation } from 'react-i18next';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -107,6 +108,8 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
     },
   });
 
+  const { t } = useTranslation();
+
   const handleSubmit = async (values: any) => {
     try {
       await onSave(values);
@@ -147,7 +150,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
         </Select>
       </Form.Item>
 
-      <Form.Item label="Language">
+      <Form.Item label={t('Language')}>
         <Select
           value={system.language}
           onChange={(value) =>
@@ -157,14 +160,14 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
             })
           }
         >
-          <Option value="en_US">English</Option>
-          <Option value="zh_CN">Chinese</Option>
-          <Option value="ja_JP">Japanese</Option>
-          <Option value="ko_KR">Korean</Option>
+          <Option value="en_US">{t('English')}</Option>
+          <Option value="zh_CN">{t('Chinese')}</Option>
+          <Option value="ja_JP">{t('Japanese')}</Option>
+          <Option value="ko_KR">{t('Korean')}</Option>
         </Select>
       </Form.Item>
 
-      <Form.Item label="Auto Update">
+      <Form.Item label={t('Auto Update')}>
         <Switch
           checked={system.autoUpdate}
           onChange={(checked) =>
@@ -177,7 +180,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
       </Form.Item>
 
       {system.autoUpdate && (
-        <Form.Item label="Update Schedule">
+        <Form.Item label={t('Update Schedule')}>
           <Select
             value={system.updateSchedule}
             onChange={(value) =>
@@ -187,9 +190,9 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
               })
             }
           >
-            <Option value="daily">Daily</Option>
-            <Option value="weekly">Weekly</Option>
-            <Option value="monthly">Monthly</Option>
+            <Option value="daily">{t('Daily')}</Option>
+            <Option value="weekly">{t('Weekly')}</Option>
+            <Option value="monthly">{t('Monthly')}</Option>
           </Select>
         </Form.Item>
       )}
@@ -198,7 +201,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 
   const renderBackupSettings = (backup: SystemManagerConfig['backup']) => (
     <>
-      <Form.Item label="Enable Backup">
+      <Form.Item label={t('Enable Backup')}>
         <Switch
           checked={backup.enabled}
           onChange={(checked) =>
@@ -212,7 +215,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 
       {backup.enabled && (
         <>
-          <Form.Item label="Backup Schedule">
+          <Form.Item label={t('Backup Schedule')}>
             <Select
               value={backup.schedule}
               onChange={(value) =>
@@ -222,13 +225,13 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
                 })
               }
             >
-              <Option value="daily">Daily</Option>
-              <Option value="weekly">Weekly</Option>
-              <Option value="monthly">Monthly</Option>
+              <Option value="daily">{t('Daily')}</Option>
+              <Option value="weekly">{t('Weekly')}</Option>
+              <Option value="monthly">{t('Monthly')}</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label="Retention Period (days)">
+          <Form.Item label={t('Retention Period (days)')}>
             <InputNumber
               min={1}
               max={365}
@@ -242,7 +245,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Backup Destination">
+          <Form.Item label={t('Backup Destination')}>
             <Select
               value={backup.destination}
               onChange={(value) =>
@@ -252,9 +255,9 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
                 })
               }
             >
-              <Option value="local">Local Storage</Option>
-              <Option value="remote">Remote Server</Option>
-              <Option value="cloud">Cloud Storage</Option>
+              <Option value="local">{t('Local Storage')}</Option>
+              <Option value="remote">{t('Remote Server')}</Option>
+              <Option value="cloud">{t('Cloud Storage')}</Option>
             </Select>
           </Form.Item>
         </>
@@ -264,7 +267,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 
   const renderMaintenanceSettings = (maintenance: SystemManagerConfig['maintenance']) => (
     <>
-      <Form.Item label="Enable Maintenance">
+      <Form.Item label={t('Enable Maintenance')}>
         <Switch
           checked={maintenance.enabled}
           onChange={(checked) =>
@@ -278,7 +281,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 
       {maintenance.enabled && (
         <>
-          <Form.Item label="Maintenance Schedule">
+          <Form.Item label={t('Maintenance Schedule')}>
             <Select
               value={maintenance.schedule}
               onChange={(value) =>
@@ -288,13 +291,13 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
                 })
               }
             >
-              <Option value="daily">Daily</Option>
-              <Option value="weekly">Weekly</Option>
-              <Option value="monthly">Monthly</Option>
+              <Option value="daily">{t('Daily')}</Option>
+              <Option value="weekly">{t('Weekly')}</Option>
+              <Option value="monthly">{t('Monthly')}</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label="Maintenance Window">
+          <Form.Item label={t('Maintenance Window')}>
             <Input
               value={maintenance.window}
               onChange={(e) =>
@@ -307,7 +310,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Maintenance Tasks">
+          <Form.Item label={t('Maintenance Tasks')}>
             <Select
               mode="multiple"
               value={maintenance.tasks}
@@ -318,10 +321,10 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
                 })
               }
             >
-              <Option value="system">System Check</Option>
-              <Option value="security">Security Update</Option>
-              <Option value="performance">Performance Optimization</Option>
-              <Option value="backup">Backup</Option>
+              <Option value="system">{t('System Check')}</Option>
+              <Option value="security">{t('Security Update')}</Option>
+              <Option value="performance">{t('Performance Optimization')}</Option>
+              <Option value="backup">{t('Backup')}</Option>
             </Select>
           </Form.Item>
         </>
@@ -331,7 +334,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 
   const renderSecuritySettings = (security: SystemManagerConfig['security']) => (
     <>
-      <Form.Item label="Password Policy">
+      <Form.Item label={t('Password Policy')}>
         <Switch
           checked={security.passwordPolicy.enabled}
           onChange={(checked) =>
@@ -348,7 +351,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
 
       {security.passwordPolicy.enabled && (
         <>
-          <Form.Item label="Minimum Length">
+          <Form.Item label={t('Minimum Length')}>
             <InputNumber
               min={6}
               max={32}
@@ -368,7 +371,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Require Special Characters">
+          <Form.Item label={t('Require Special Characters')}>
             <Switch
               checked={security.passwordPolicy.requireSpecial}
               onChange={(checked) =>
@@ -386,7 +389,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Require Numbers">
+          <Form.Item label={t('Require Numbers')}>
             <Switch
               checked={security.passwordPolicy.requireNumber}
               onChange={(checked) =>
@@ -404,7 +407,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Require Uppercase">
+          <Form.Item label={t('Require Uppercase')}>
             <Switch
               checked={security.passwordPolicy.requireUppercase}
               onChange={(checked) =>
@@ -424,7 +427,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
         </>
       )}
 
-      <Form.Item label="Session Timeout (minutes)">
+      <Form.Item label={t('Session Timeout (minutes)')}>
         <InputNumber
           min={5}
           max={1440}
@@ -438,7 +441,7 @@ const SystemManagerConfig: React.FC<SystemManagerConfigProps> = ({
         />
       </Form.Item>
 
-      <Form.Item label="Max Login Attempts">
+      <Form.Item label={t('Max Login Attempts')}>
         <InputNumber
           min={3}
           max={10}

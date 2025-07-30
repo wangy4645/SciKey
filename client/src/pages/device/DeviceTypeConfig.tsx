@@ -159,7 +159,7 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
       >
         <div className={styles.warningText}>
           <InfoCircleOutlined style={{ marginRight: 8 }} />
-          <strong>NOTE:&nbsp;&nbsp;</strong>{t('Network role change requires restart to take effect')}
+          <strong>{t('NOTE')}:&nbsp;&nbsp;</strong>{t('Network role change requires restart to take effect')}
         </div>
 
         <Alert
@@ -191,7 +191,7 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
         <Divider />
 
         <div className={styles.settingValue}>
-          <strong>{t('Network Role Setting:')}</strong>
+          <strong>{t('Network Role Setting')}:</strong>
           <Form
             form={form}
             layout="vertical"

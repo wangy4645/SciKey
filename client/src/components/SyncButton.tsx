@@ -178,7 +178,7 @@ const SyncButton: React.FC<SyncButtonProps> = ({
                             padding: '4px 12px 4px 0',
                             width: 160,
                             whiteSpace: 'nowrap',
-                          }}>Network Role:</td>
+                          }}>{t('Network Role')}:</td>
                           <td style={{
                             textAlign: 'left',
                             padding: '4px 0',
@@ -202,7 +202,7 @@ const SyncButton: React.FC<SyncButtonProps> = ({
                           padding: '4px 12px 4px 0',
                           width: 160,
                           whiteSpace: 'nowrap',
-                        }}>Tdd config:</td>
+                        }}>{t('TDD Config')}:</td>
                         <td style={{
                           textAlign: 'left',
                           padding: '4px 0',
@@ -220,14 +220,14 @@ const SyncButton: React.FC<SyncButtonProps> = ({
                           whiteSpace: 'nowrap',
                         }}>
                           {/* 字段名称友好化显示 */}
-                          {key === 'encryption_algorithm' ? 'Encryption' :
-                           key === 'frequency_band' ? 'Frequency Band' :
-                           key === 'frequency_hopping' ? 'Frequency Hopping' :
-                           key === 'slave_max_tx_power' ? 'Max TX Power' :
-                           key === 'access_state' ? 'Access State' :
-                           key === 'all_radio_param_report' ? 'Radio Report' :
-                           key === 'radio_param_report' ? 'Param Report' :
-                           key === 'band_config' ? 'Band Config' :
+                          {key === 'encryption_algorithm' ? t('Encryption') :
+                           key === 'frequency_band' ? t('Frequency Band') :
+                           key === 'frequency_hopping' ? t('Frequency Hopping') :
+                           key === 'slave_max_tx_power' ? t('Max TX Power') :
+                           key === 'access_state' ? t('Access State') :
+                           key === 'all_radio_param_report' ? t('Radio Report') :
+                           key === 'radio_param_report' ? t('Param Report') :
+                           key === 'band_config' ? t('Band Config') :
                            key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}:
                         </td>
                         <td style={{
@@ -237,10 +237,10 @@ const SyncButton: React.FC<SyncButtonProps> = ({
                         }}>
                           {key === 'encryption_algorithm' ? (
                             <span>
-                              {value === '0' || value === 0 ? 'NONE'
-                                : value === '1' || value === 1 ? 'SNOW3G'
-                                : value === '2' || value === 2 ? 'AES'
-                                : value === '3' || value === 3 ? 'ZUC'
+                              {value === '0' || value === 0 ? t('NONE')
+                                : value === '1' || value === 1 ? t('SNOW3G')
+                                : value === '2' || value === 2 ? t('AES')
+                                : value === '3' || value === 3 ? t('ZUC')
                                 : String(value)}
                             </span>
                           ) : (

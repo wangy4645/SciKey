@@ -13,18 +13,18 @@ interface SecurityConfig2StarProps {
   onConfigUpdate: () => void;
 }
 
-const algoOptions = [
-  { label: 'NONE', value: 0 },
-  { label: 'SNOW3G', value: 1 },
-  { label: 'AES', value: 2 },
-  { label: 'ZUC', value: 3 },
-];
-
 const SecurityConfig2Star: React.FC<SecurityConfig2StarProps> = ({ device, onConfigUpdate }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<any>(null);
+
+  const algoOptions = [
+    { label: t('NONE'), value: 0 },
+    { label: t('SNOW3G'), value: 1 },
+    { label: t('AES'), value: 2 },
+    { label: t('ZUC'), value: 3 },
+  ];
 
   useEffect(() => {
     // 获取当前配置（从API获取）

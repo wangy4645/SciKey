@@ -193,6 +193,21 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
     }
   };
 
+  const getQualityText = (quality: string) => {
+    switch (quality) {
+      case 'excellent':
+        return t('Excellent');
+      case 'good':
+        return t('Good');
+      case 'fair':
+        return t('Fair');
+      case 'poor':
+        return t('Poor');
+      default:
+        return t('Unknown');
+    }
+  };
+
   const handleRefresh = () => {
     fetchNetworkStatus();
   };
@@ -287,7 +302,7 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
               <Col span={8}>
                 <Statistic
                   title={t('Status')}
-                  value={status.connectionStatus}
+                  value={status.connectionStatus === 'connected' ? t('Connected') : t('Disconnected')}
                   valueStyle={{
                     color: status.connectionStatus === 'connected' ? '#52c41a' : '#ff4d4f',
                   }}
@@ -310,7 +325,7 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
               <Col span={8}>
                 <Statistic
                   title={t('Connection Quality')}
-                  value={status.connectionQuality}
+                  value={getQualityText(status.connectionQuality)}
                   valueStyle={{ color: getQualityColor(status.connectionQuality) }}
                 />
               </Col>
@@ -326,12 +341,12 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
               </Descriptions.Item>
               <Descriptions.Item label={t('Connection Quality')}>
                 <Tag color={getQualityColor(status.connectionQuality)}>
-                  {status.connectionQuality.toUpperCase()}
+                  {getQualityText(status.connectionQuality)}
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label={t('Device Status')}>
                 <Tag color={status.connectionStatus === 'connected' ? 'success' : 'error'}>
-                  {status.connectionStatus.toUpperCase()}
+                  {status.connectionStatus === 'connected' ? t('Connected') : t('Disconnected')}
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label={t('Signal Strength')}>

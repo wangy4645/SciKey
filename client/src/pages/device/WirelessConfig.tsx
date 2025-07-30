@@ -374,7 +374,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
       <div className={styles.currentConfig}>
         <strong>{t('Now Configuration')}:</strong>
         <div style={{ marginTop: 8, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
-          {currentBuildingChain || 'Not set'}
+          {currentBuildingChain || t('Not set')}
         </div>
       </div>
 
@@ -391,11 +391,11 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
                 buildingChain: e.target.value,
               });
             }}
-            placeholder="Please enter the correct value 24015-24814,8060-8259,14279-14478"
+            placeholder={t('Please enter the correct value 24015-24814,8060-8259,14279-14478')}
           />
         </Form.Item>
         <Alert
-          message="Please enter the correct value 24015-24814,8060-8259,14279-14478"
+          message={t('Please enter the correct value 24015-24814,8060-8259,14279-14478')}
           type="info"
           showIcon
           style={{ marginTop: 8 }}
@@ -408,7 +408,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
           onClick={async () => {
             // 验证输入
             if (!config.buildingChain || config.buildingChain.trim() === '') {
-              message.error('Please enter frequency point range');
+              message.error(t('Please enter frequency point range'));
               return;
             }
             
@@ -420,14 +420,14 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
               
               const parts = trimmedRange.split('-');
               if (parts.length !== 2) {
-                message.error('Invalid format. Expected: start-end,start-end,...');
+                message.error(t('Invalid format. Expected: start-end,start-end,...'));
                 return;
               }
               
               const start = parseInt(parts[0].trim());
               const end = parseInt(parts[1].trim());
               if (isNaN(start) || isNaN(end)) {
-                message.error('Invalid frequency values. Please enter numbers only.');
+                message.error(t('Invalid frequency values. Please enter numbers only.'));
                 return;
               }
             }
@@ -436,9 +436,9 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
               await deviceConfigAPI.setBuildingChain(Number(device.id), config.buildingChain);
               // 保存成功后更新当前配置状态
               setCurrentBuildingChain(config.buildingChain);
-              message.success('Building chain setting saved successfully');
+              message.success(t('Building chain setting saved successfully'));
             } catch (error) {
-              message.error('Failed to save building chain setting');
+              message.error(t('Failed to save building chain setting'));
             }
           }}
           loading={loading}
@@ -448,7 +448,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
         <Button 
           onClick={() => {
             setConfig({ ...config, buildingChain: '' });
-            message.info('Reset to empty value');
+            message.info(t('Reset to empty value'));
           }}
         >
           {t('Reset')}

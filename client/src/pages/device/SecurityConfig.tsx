@@ -239,36 +239,17 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId, isMe
         </Col>
         <Col span={12}>
           <Form.Item
-            name="ssh_port"
-            label={t('SSH Port')}
-            rules={[
-              { type: 'number', min: 1, max: 65535, message: t('Port must be between 1 and 65535') }
-            ]}
-          >
-            <InputNumber style={{ width: '100%' }} placeholder="22" />
-          </Form.Item>
-        </Col>
-      </Row>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
             name="ssh_key_auth"
-            label={t('Enable Key Authentication')}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="ssh_password_auth"
-            label={t('Enable Password Authentication')}
+            label={t('SSH Key Authentication')}
             valuePropName="checked"
           >
             <Switch />
           </Form.Item>
         </Col>
       </Row>
+      <Form.Item label={t('SSH Port')} name="ssh_port">
+        <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+      </Form.Item>
     </Card>
   );
 
@@ -290,36 +271,42 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId, isMe
             label={t('VPN Type')}
           >
             <Select>
-              <Select.Option value="openvpn">OpenVPN</Select.Option>
-              <Select.Option value="ipsec">IPSec</Select.Option>
-              <Select.Option value="wireguard">WireGuard</Select.Option>
+              <Select.Option value="openvpn">{t('OpenVPN')}</Select.Option>
+              <Select.Option value="wireguard">{t('WireGuard')}</Select.Option>
             </Select>
           </Form.Item>
         </Col>
       </Row>
-      <Form.Item
-        name="vpn_config"
-        label={t('VPN Configuration')}
-      >
-        <Input.TextArea rows={4} />
+      <Form.Item label={t('VPN Server')} name="vpn_server">
+        <Input placeholder={t('Enter VPN server address')} />
       </Form.Item>
     </Card>
   );
 
   const renderFirewallSettings = () => (
     <Card title={t('Firewall Settings')} className={styles.card}>
-      <Form.Item
-        name="firewall_enabled"
-        label={t('Enable Firewall')}
-        valuePropName="checked"
-      >
-        <Switch />
-      </Form.Item>
-      <Form.Item
-        name="access_control_list"
-        label={t('Access Control List')}
-      >
-        <Input.TextArea rows={4} placeholder={t('Enter access control rules (one per line)')} />
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            name="firewall_enabled"
+            label={t('Enable Firewall')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            name="firewall_logging"
+            label={t('Firewall Logging')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+      </Row>
+      <Form.Item label={t('Allowed Ports')} name="allowed_ports">
+        <Input placeholder={t('Enter allowed ports (e.g., 80,443,8080)')} />
       </Form.Item>
     </Card>
   );
@@ -329,49 +316,29 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId, isMe
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
-            name="security_alerts"
-            label={t('Enable Security Alerts')}
+            name="security_scan_enabled"
+            label={t('Enable Security Scan')}
             valuePropName="checked"
           >
             <Switch />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="security_updates"
-            label={t('Enable Security Updates')}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-      </Row>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="security_log_level"
-            label={t('Security Log Level')}
-          >
-            <Select>
-              <Select.Option value="debug">{t('Debug')}</Select.Option>
-              <Select.Option value="info">{t('Info')}</Select.Option>
-              <Select.Option value="warning">{t('Warning')}</Select.Option>
-              <Select.Option value="error">{t('Error')}</Select.Option>
-            </Select>
           </Form.Item>
         </Col>
         <Col span={12}>
           <Form.Item
             name="security_scan_period"
-            label={t('Security Scan Period (hours)')}
-            rules={[
-              { type: 'number', min: 1, max: 168, message: t('Period must be between 1 and 168 hours') }
-            ]}
+            label={t('Scan Period (hours)')}
           >
-            <InputNumber style={{ width: '100%' }} />
+            <InputNumber min={1} max={24} style={{ width: '100%' }} />
           </Form.Item>
         </Col>
       </Row>
+      <Form.Item label={t('Security Policies')} name="security_policies">
+        <Select mode="multiple" placeholder={t('Select security policies')}>
+          <Select.Option value="password_policy">{t('Password Policy')}</Select.Option>
+          <Select.Option value="session_timeout">{t('Session Timeout')}</Select.Option>
+          <Select.Option value="login_attempts">{t('Login Attempts')}</Select.Option>
+        </Select>
+      </Form.Item>
     </Card>
   );
 

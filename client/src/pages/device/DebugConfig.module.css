@@ -84,29 +84,72 @@
   display: flex;
   gap: 16px;
   margin-bottom: 24px;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.drprButtons {
+  flex-direction: column !important;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.drprButtons .hoppingButton {
+  min-width: 120px;
+  max-width: 220px;
+  width: auto;
+  margin: 0 auto;
 }
 
 .hoppingButton {
   min-width: 120px;
+  max-width: 220px;
+  width: auto;
   height: 48px;
-  font-size: 16px;
-  font-weight: 500;
+  border-radius: 8px;
+  border: 2px solid #e8e8e8;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.hoppingButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.hoppingButton.activeButton {
+  border-color: #1890ff;
+  background-color: #e6f7ff;
 }
 
 .openButton {
-  background-color: #52c41a;
+  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
   border-color: #52c41a;
+  color: white;
+}
+
+.openButton:hover {
+  background: linear-gradient(135deg, #389e0d 0%, #52c41a 100%);
+  border-color: #389e0d;
 }
 
 .closeButton {
-  background-color: #ff4d4f;
+  background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
   border-color: #ff4d4f;
   color: white;
 }
 
-.activeButton {
+.closeButton:hover {
+  background: linear-gradient(135deg, #cf1322 0%, #ff4d4f 100%);
+  border-color: #cf1322;
+}
+
+.hoppingButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .messagesSection {
@@ -312,10 +355,61 @@
 }
 
 .drprStatusDot {
-  width: 3px;
-  height: 3px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  margin-right: 3px;
+  margin-right: 8px;
+}
+
+.drprStatusActive .drprStatusDot {
+  background-color: #52c41a;
+}
+
+.drprStatusInactive .drprStatusDot {
+  background-color: #ff4d4f;
+}
+
+/* DRPR Reporting 新布局样式 */
+/* 优化 signalLegend 区块样式 */
+.signalLegend {
+  background-color: #fafafa;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+}
+
+.signalLegend h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.legendItem {
+  padding: 6px 12px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #262626;
+  font-weight: 500;
+}
+
+.legendItem:last-child {
+  margin-bottom: 0;
+}
+
+.dataTable {
+  margin-top: 16px;
+}
+
+.dataTable :global(.ant-table-thead > tr > th) {
+  background-color: #f5f5f5;
+  font-weight: 500;
+  color: #262626;
+}
+
+.dataTable :global(.ant-table-tbody > tr > td) {
+  padding: 8px 16px;
 }
 
 @media (max-width: 1024px) {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Form, Input, Select, Switch, Card, Row, Col, Button, Space } from 'antd';
 import { Device } from '../../types';
 import styles from './SystemConfig.module.css';
+import { useTranslation } from 'react-i18next';
 
 const { Option } = Select;
 
@@ -17,6 +18,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
   loading = false,
 }) => {
   const [form] = Form.useForm();
+  const { t } = useTranslation();
 
   const handleSubmit = async (values: any) => {
     onSave(values);
@@ -24,7 +26,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
 
   return (
     <div className={styles.container}>
-      <Card title="System Configuration" className={styles.card}>
+      <Card title={t('System Configuration')} className={styles.card}>
         <Form
           form={form}
           layout="vertical"
@@ -38,16 +40,16 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
         >
           <Form.Item
             name="hostname"
-            label="Hostname"
-            rules={[{ required: true, message: 'Please input hostname' }]}
+            label={t('Hostname')}
+            rules={[{ required: true, message: t('Please input hostname') }]}
           >
             <Input />
           </Form.Item>
 
           <Form.Item
             name="timezone"
-            label="Timezone"
-            rules={[{ required: true, message: 'Please select timezone' }]}
+            label={t('Timezone')}
+            rules={[{ required: true, message: t('Please select timezone') }]}
           >
             <Select>
               <Option value="UTC">UTC</Option>
@@ -58,35 +60,35 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
 
           <Form.Item
             name="language"
-            label="Language"
-            rules={[{ required: true, message: 'Please select language' }]}
+            label={t('Language')}
+            rules={[{ required: true, message: t('Please select language') }]}
           >
             <Select>
-              <Option value="en">English</Option>
-              <Option value="zh">Chinese</Option>
+              <Option value="en">{t('English')}</Option>
+              <Option value="zh">{t('Chinese')}</Option>
             </Select>
           </Form.Item>
 
           <Form.Item
             name="logLevel"
-            label="Log Level"
-            rules={[{ required: true, message: 'Please select log level' }]}
+            label={t('Log Level')}
+            rules={[{ required: true, message: t('Please select log level') }]}
           >
             <Select>
-              <Option value="debug">Debug</Option>
-              <Option value="info">Info</Option>
-              <Option value="warning">Warning</Option>
-              <Option value="error">Error</Option>
+              <Option value="debug">{t('Debug')}</Option>
+              <Option value="info">{t('Info')}</Option>
+              <Option value="warning">{t('Warning')}</Option>
+              <Option value="error">{t('Error')}</Option>
             </Select>
           </Form.Item>
 
           <Form.Item>
             <div className={styles.buttonGroup}>
               <Button type="primary" htmlType="submit" loading={loading}>
-                Save
+                {t('Save')}
               </Button>
               <Button onClick={() => form.resetFields()}>
-                Reset
+                {t('Reset')}
               </Button>
             </div>
           </Form.Item>

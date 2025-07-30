@@ -54,7 +54,7 @@ const Settings: React.FC = () => {
                 rules={[{ required: true, message: t('Please select language') }]}
               >
                 <Select onChange={val => i18n.changeLanguage(val.startsWith('zh') ? 'zh' : 'en')}>
-                  <Option value="en_US">English</Option>
+                  <Option value="en_US">{t('English')}</Option>
                   <Option value="zh_CN">中文</Option>
                 </Select>
               </Form.Item>

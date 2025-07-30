@@ -159,7 +159,7 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
       >
         <div className={styles.warningText}>
           <InfoCircleOutlined style={{ marginRight: 8 }} />
-          <strong>NOTE:&nbsp;&nbsp;</strong>{t('Please restart device when setup is completed')}
+          <strong>{t('NOTE')}:&nbsp;&nbsp;</strong>{t('Please restart device when setup is completed')}
         </div>
 
         <Alert
@@ -172,16 +172,16 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
         <Divider />
         
         <div className={styles.currentConfig}>
-          <strong>{t('Now Configuration:')}</strong>
+          <strong>{t('Now Configuration')}:</strong>
           <div style={{ marginTop: 8, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
-            {config.currentSetting || 'Not set'}
+            {config.currentSetting || t('Not set')}
           </div>
         </div>
 
         <Divider />
 
         <div className={styles.settingValue}>
-          <strong>{t('TDD Configuration:')}</strong>
+          <strong>{t('TDD Configuration')}:</strong>
           <Form
             form={form}
             layout="vertical"
