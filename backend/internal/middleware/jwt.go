@@ -55,6 +55,13 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		userID := claims.UserID
 		log.Printf("User ID from token: %d", userID)
+		// 允许internal_simulator通过认证
+		if userID == 0 && claims.Username == "internal_simulator" {
+			log.Printf("Internal simulator authenticated")
+			c.Set("user", model.User{Username: "internal_simulator"})
+			c.Next()
+			return
+		}
 		if userID == 0 {
 			log.Printf("Invalid user ID in token")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})

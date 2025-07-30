@@ -30,7 +30,12 @@ func main() {
 	// 4. Start the integrated simulator in a background goroutine
 	go simulator.Start(database, "http://localhost:8080", internalToken)
 
-	// 5. Setup and run the Gin router, passing the DB instance to it
+	// 5. Start device status monitor service
+	deviceStatusMonitor := service.NewDeviceStatusMonitor(database, 30*time.Second) // 每30秒检测一次
+	deviceStatusMonitor.Start()
+	log.Println("Device status monitor started")
+
+	// 6. Setup and run the Gin router, passing the DB instance to it
 	r := router.SetupRouter(database)
 	log.Println("Starting server on :8080")
 	if err := r.Run(":8080"); err != nil {

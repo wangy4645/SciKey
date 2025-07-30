@@ -43,6 +43,7 @@ const NetworkTopology: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
+  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Separate function for manual refresh, which shows a notification.
   const handleRefresh = useCallback(async () => {
@@ -67,6 +68,19 @@ const NetworkTopology: React.FC = () => {
     }
   }, [t]);
 
+  // Auto refresh function (silent, no notifications)
+  const autoRefresh = useCallback(async () => {
+    try {
+      const response = await topologyAPI.getTopology();
+      const data = response.data;
+      if (data && Array.isArray(data.nodes) && Array.isArray(data.links)) {
+        setGraphData(data);
+      }
+    } catch (error) {
+      console.error('Auto refresh failed:', error);
+    }
+  }, []);
+
   // Fetch initial data on component mount, without a success notification.
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -86,7 +100,18 @@ const NetworkTopology: React.FC = () => {
       }
     };
     fetchInitialData();
-  }, []); // Empty dependency array ensures this runs only once on mount.
+
+    // Start auto refresh every 30 seconds
+    autoRefreshIntervalRef.current = setInterval(autoRefresh, 30000);
+
+    // Cleanup function
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+        autoRefreshIntervalRef.current = null;
+      }
+    };
+  }, [autoRefresh]); // Add autoRefresh to dependencies
     
   // Initialize the graph
   const initializeGraph = useCallback(() => {
@@ -103,14 +128,48 @@ const NetworkTopology: React.FC = () => {
 
       // Create new graph instance
       graphRef.current = ForceGraph2D()(containerRef.current)
+        .width(containerRef.current.offsetWidth)
+        .height(containerRef.current.offsetHeight)
         .nodeLabel('name')
         .nodeColor((node: GraphNode) => {
-          if (node.status.toLowerCase() === 'offline') return '#ff4d4f';
+          // 离线设备保持原色但变暗
+          if (node.status.toLowerCase() === 'offline') {
+            return node.type === 'master' ? '#b3d9ff' : '#b3e6b3'; // 变暗的蓝色和绿色
+          }
           return node.type === 'master' ? '#1890ff' : '#52c41a';
         })
         .nodeRelSize(8)
         .linkColor(() => '#999')
         .linkWidth(2)
+        .linkDirectionalArrowLength((link: any) => {
+          // 只为主到从的方向显示箭头
+          const sourceNode = graphData.nodes.find(n => n.id === (link.source.id || link.source));
+          const targetNode = graphData.nodes.find(n => n.id === (link.target.id || link.target));
+          if (sourceNode && sourceNode.type === 'master' && targetNode && targetNode.type === 'slave') {
+            return 8;
+          }
+          return 0;
+        })
+        .linkDirectionalArrowRelPos(1)
+        .nodeLabel((node: GraphNode) =>
+          (node.type === 'master' ? t('Master Node') : t('Slave Node')) + ': ' + node.name
+        )
+        .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+          // 根据状态和类型设置颜色
+          let fillColor;
+          if (node.status && node.status.toLowerCase() === 'offline') {
+            // 离线设备：变暗的颜色
+            fillColor = node.type === 'master' ? '#b3d9ff' : '#b3e6b3';
+          } else {
+            // 在线设备：正常颜色
+            fillColor = node.type === 'master' ? '#1890ff' : '#52c41a';
+          }
+          
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, 8, 0, 2 * Math.PI, false);
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+        })
         .onNodeClick((node: GraphNode) => setSelectedNode(node))
         .onNodeHover((node: GraphNode | null) => {
           if (containerRef.current) {
@@ -124,12 +183,23 @@ const NetworkTopology: React.FC = () => {
     } catch (error) {
       message.error(t('Failed to initialize network topology'));
     }
-  }, [t]);
+  }, [t, graphData]);
 
   // Update graph data
   const updateGraphData = useCallback(() => {
     if (graphRef.current) {
       graphRef.current.graphData(graphData);
+      
+      // 重新设置箭头显示逻辑，确保新节点上线时箭头能正确显示
+      graphRef.current.linkDirectionalArrowLength((link: any) => {
+        // 只为主到从的方向显示箭头
+        const sourceNode = graphData.nodes.find(n => n.id === (link.source.id || link.source));
+        const targetNode = graphData.nodes.find(n => n.id === (link.target.id || link.target));
+        if (sourceNode && sourceNode.type === 'master' && targetNode && targetNode.type === 'slave') {
+          return 8;
+        }
+        return 0;
+      });
     }
   }, [graphData]);
 
@@ -143,6 +213,20 @@ const NetworkTopology: React.FC = () => {
     updateGraphData();
   }, [updateGraphData]);
 
+  // Handle container size changes when selectedNode changes
+  useEffect(() => {
+    // 使用setTimeout确保DOM更新完成后再调整图表尺寸
+    const timer = setTimeout(() => {
+      if (graphRef.current && containerRef.current) {
+        graphRef.current
+          .width(containerRef.current.offsetWidth)
+          .height(containerRef.current.offsetHeight);
+      }
+    }, 100); // 给DOM一点时间更新
+
+    return () => clearTimeout(timer);
+  }, [selectedNode]); // 当selectedNode变化时重新调整尺寸
+
   // Cleanup function
   useEffect(() => {
     return () => {
@@ -153,6 +237,20 @@ const NetworkTopology: React.FC = () => {
         graphRef.current = null;
       }
     };
+  }, []);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (graphRef.current && containerRef.current) {
+        graphRef.current
+          .width(containerRef.current.offsetWidth)
+          .height(containerRef.current.offsetHeight);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (

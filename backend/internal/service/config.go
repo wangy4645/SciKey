@@ -427,31 +427,36 @@ func (s *ConfigService) SaveDeviceConfigs(deviceID uint, category string, config
 			return fmt.Errorf("failed to commit transaction: %v", err)
 		}
 
-		// 发送AT+CONFIG指令（如果encryption_key存在）
-		if _, ok := configs["encryption_key"]; ok {
-			getStr := func(k string, def string) string {
-				if v, ok := configs[k]; ok && v != nil {
-					return fmt.Sprintf("%v", v)
-				}
-				if v, ok := oldConfigMap[k]; ok && v != nil {
-					return fmt.Sprintf("%v", v)
-				}
-				return def
+		// 总是下发AT^DCIAC=算法编号和AT+CONFIG=...
+		getStr := func(k string, def string) string {
+			if v, ok := configs[k]; ok && v != nil {
+				return fmt.Sprintf("%v", v)
 			}
-			encryption := getStr("encryption_algorithm", "0")
-			params := []string{
-				"0", // frequency_band
-				"0", // bandwidth
-				"0", // center_freq
-				"0", // transmit_power
-				encryption,
-				getStr("encryption_key", ""),
+			if v, ok := oldConfigMap[k]; ok && v != nil {
+				return fmt.Sprintf("%v", v)
 			}
-			atCmd := "AT+CONFIG=" + strings.Join(params, ",")
-			_, err := s.deviceComm.SendATCommand(deviceID, atCmd)
-			if err != nil {
-				log.Printf("Failed to send AT+CONFIG: %v", err)
-			}
+			return def
+		}
+		encryption := getStr("encryption_algorithm", "0")
+		algInt, _ := strconv.Atoi(encryption)
+		atCmdAlg := fmt.Sprintf("AT^DCIAC=%d", algInt)
+		_, err = s.deviceComm.SendATCommand(deviceID, atCmdAlg)
+		if err != nil {
+			log.Printf("Failed to send AT^DCIAC: %v", err)
+		}
+
+		params := []string{
+			"0", // frequency_band
+			"0", // bandwidth
+			"0", // center_freq
+			"0", // transmit_power
+			encryption,
+			getStr("encryption_key", ""),
+		}
+		atCmd := "AT+CONFIG=" + strings.Join(params, ",")
+		_, err = s.deviceComm.SendATCommand(deviceID, atCmd)
+		if err != nil {
+			log.Printf("Failed to send AT+CONFIG: %v", err)
 		}
 		return nil
 

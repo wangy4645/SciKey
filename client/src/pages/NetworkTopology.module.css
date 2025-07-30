@@ -12,6 +12,7 @@
 .content {
   display: flex;
   gap: 24px;
+  transition: all 0.3s ease; /* 添加平滑过渡 */
 }
 
 .graphContainer {
@@ -22,6 +23,15 @@
   border: 1px solid #f0f0f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   position: relative;
+  overflow: hidden; /* 防止内容溢出 */
+  transition: all 0.3s ease; /* 添加平滑过渡 */
+}
+
+/* 确保force-graph组件不会超出容器 */
+.graphContainer :global(canvas) {
+  border-radius: 4px;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .detailsCard {

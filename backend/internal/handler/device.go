@@ -660,11 +660,23 @@ func (h *DeviceHandler) SetFrequencyBand(c *gin.Context) {
 		}
 	}
 
-	// 发送AT指令设置频段
-	atCmd := fmt.Sprintf("AT^DAOCNDI=%X", bandBitmap)
-	_, err = h.deviceCommService.SendATCommand(device.ID, atCmd)
+	// 验证位图值是否在合理范围内 (0-15，因为只有4个bit位)
+	if bandBitmap < 0 || bandBitmap > 15 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid band bitmap value: %d (0x%X). Must be between 0-15.", bandBitmap, bandBitmap)})
+		return
+	}
+
+	// 发送AT指令设置频段 - 使用十六进制字符串格式（不带引号），符合AT指令文档要求
+	atCmd := fmt.Sprintf("AT^DAOCNDI=%02X", bandBitmap)
+	response, err := h.deviceCommService.SendATCommand(device.ID, atCmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send AT command"})
+		return
+	}
+
+	// 检查AT指令响应
+	if strings.Contains(response, "ERROR") {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set frequency band"})
 		return
 	}
 

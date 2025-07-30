@@ -41,22 +41,31 @@ func runSimulationLoop(db *gorm.DB, backendURL, authToken string) {
 	// Wait a moment for the main server to be ready.
 	time.Sleep(5 * time.Second)
 
+	// 定期更新拓扑的定时器
+	ticker := time.NewTicker(30 * time.Second) // 每30秒更新一次
+	defer ticker.Stop()
+
+	// 立即执行一次初始拓扑报告
+	reportTopology(db, backendURL, authToken)
+
+	// 定期更新拓扑
+	for range ticker.C {
+		reportTopology(db, backendURL, authToken)
+	}
+}
+
+// reportTopology 报告拓扑信息
+func reportTopology(db *gorm.DB, backendURL, authToken string) {
 	var allDevices []Device
 	if err := db.Find(&allDevices).Error; err != nil {
 		log.Printf("[Simulator] ERROR: Failed to fetch devices: %v", err)
 		return
 	}
-	log.Printf("[Simulator] Found %d devices in the database.", len(allDevices))
 
 	rules := map[string]string{"mesh": "mesh", "star": "star"}
 	groups := groupDevices(allDevices, rules)
-	log.Printf("[Simulator] Devices grouped into %d topology groups.", len(groups))
 
 	neighborMap := calculateAllNeighbors(groups)
-	for deviceID, neighbors := range neighborMap {
-		nodeID := getNodeID(allDevices, deviceID)
-		log.Printf("[Simulator] Device ID %d (Node %s) assigned neighbors: %v", deviceID, nodeID, neighbors)
-	}
 
 	var wg sync.WaitGroup
 	for _, device := range allDevices {
@@ -67,7 +76,6 @@ func runSimulationLoop(db *gorm.DB, backendURL, authToken string) {
 		}(device)
 	}
 	wg.Wait()
-	log.Println("[Simulator] Initial topology reporting complete.")
 }
 
 // --- Helper Functions (similar to standalone simulator) ---
@@ -76,16 +84,11 @@ func groupDevices(devices []Device, rules map[string]string) map[string][]Device
 	// ... (logic is the same as the standalone simulator)
 	groups := make(map[string][]Device)
 	for _, device := range devices {
-		foundGroup := false
 		for groupName, keyword := range rules {
 			if strings.Contains(strings.ToLower(device.BoardType), strings.ToLower(keyword)) {
 				groups[groupName] = append(groups[groupName], device)
-				foundGroup = true
 				break
 			}
-		}
-		if !foundGroup {
-			log.Printf("[Simulator] Warning: Device %s did not match any topology rule.", device.NodeID)
 		}
 	}
 	return groups
@@ -138,8 +141,6 @@ func reportLinks(device Device, neighbors []string, backendURL, authToken string
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("[Simulator Agent for %s] FAILED to report links. Status: %s", device.NodeID, resp.Status)
-	} else {
-		log.Printf("[Simulator Agent for %s] Successfully reported %d neighbors.", device.NodeID, len(neighbors))
 	}
 }
 
