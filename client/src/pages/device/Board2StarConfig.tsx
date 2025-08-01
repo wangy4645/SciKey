@@ -40,7 +40,14 @@ const Board2StarConfig: React.FC<Board2StarConfigProps> = ({ device, onConfigUpd
         <p><strong>{t('Network Role')}:</strong> {device.type}</p>
       </TabPane>
       <TabPane tab={t('Debug')} key="debug">
-        <DebugConfig device={device} onSave={async () => {}} loading={false} />
+        <DebugConfig 
+          device={device} 
+          onSave={async (values: any) => {
+            // 这里可以添加保存逻辑，目前为空
+            console.log('Debug config values:', values);
+          }} 
+          loading={false} 
+        />
       </TabPane>
     </Tabs>
   );

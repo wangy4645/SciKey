@@ -3,9 +3,14 @@ package handler
 import (
 	"backend/internal/model"
 	"backend/internal/service"
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,10 +20,11 @@ import (
 )
 
 type DeviceHandler struct {
-	deviceService     *service.DeviceService
-	deviceCommService *service.DeviceCommService
-	configService     *service.ConfigService
-	topologyService   *service.TopologyService // Add TopologyService
+	deviceService      *service.DeviceService
+	deviceCommService  *service.DeviceCommService
+	configService      *service.ConfigService
+	topologyService    *service.TopologyService    // Add TopologyService
+	drprMonitorService *service.DRPRMonitorService // Add DRPRMonitorService
 }
 
 func NewDeviceHandler(
@@ -26,12 +32,14 @@ func NewDeviceHandler(
 	deviceCommService *service.DeviceCommService,
 	configService *service.ConfigService,
 	topologyService *service.TopologyService, // Add TopologyService to parameters
+	drprMonitorService *service.DRPRMonitorService, // Add DRPRMonitorService to parameters
 ) *DeviceHandler {
 	return &DeviceHandler{
-		deviceService:     deviceService,
-		deviceCommService: deviceCommService,
-		configService:     configService,
-		topologyService:   topologyService, // Initialize TopologyService
+		deviceService:      deviceService,
+		deviceCommService:  deviceCommService,
+		configService:      configService,
+		topologyService:    topologyService,    // Initialize TopologyService
+		drprMonitorService: drprMonitorService, // Initialize DRPRMonitorService
 	}
 }
 
@@ -950,24 +958,92 @@ func (h *DeviceHandler) SetDrprReporting(c *gin.Context) {
 	}
 
 	// 获取设备信息
-	_, err = h.deviceService.GetDeviceByID(uint(deviceID))
+	device, err := h.deviceService.GetDeviceByID(uint(deviceID))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
 		return
 	}
 
-	// 发送AT命令
-	var atCommand string
+	log.Printf("Setting DRPR reporting for device %d (%s) to enabled=%v", deviceID, device.IP, req.Enabled)
+
+	// 使用正确的HTTP接口发送DRPR配置
+	var result string
+	var err2 error
+
 	if req.Enabled {
-		atCommand = "AT^DRPR=1" // 启动DRPR Reporting
+		// 开启DRPR上报 - 发送 DdtcType=1
+		log.Printf("Sending DRPR enable request to device %d (%s)", deviceID, device.IP)
+		result, err2 = h.sendDRPRMonitorRequest(device.IP, "1")
+
+		// 如果DRPR请求成功，解析并存储DRPR数据
+		if err2 == nil && result != "" {
+			log.Printf("DRPR request successful, processing response for device %d", deviceID)
+
+			// 分割响应中的多个DRPR消息
+			lines := strings.Split(result, "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "^DRPR:") {
+					log.Printf("Processing DRPR line: %s", line)
+					err3 := h.drprMonitorService.ProcessDRPRMessage(uint(deviceID), line)
+					if err3 != nil {
+						log.Printf("Failed to process DRPR message: %v", err3)
+					} else {
+						log.Printf("Successfully processed DRPR message for device %d", deviceID)
+					}
+				}
+			}
+		}
+
+		// 启动DRPR监控（每5秒发送一次请求）
+		if err2 == nil {
+			log.Printf("DRPR request successful, starting monitoring for device %d", deviceID)
+			err3 := h.drprMonitorService.StartDRPRMonitoring(uint(deviceID))
+			if err3 != nil {
+				log.Printf("Failed to start DRPR monitoring: %v", err3)
+			} else {
+				log.Printf("Successfully started DRPR monitoring for device %d", deviceID)
+			}
+		} else {
+			log.Printf("Failed to send DRPR request to device %d: %v", deviceID, err2)
+		}
 	} else {
-		atCommand = "AT^DRPR=0" // 停止DRPR Reporting
+		// 关闭DRPR上报 - 发送 DdtcType=0
+		log.Printf("Sending DRPR disable request to device %d (%s)", deviceID, device.IP)
+		result, err2 = h.sendDRPRMonitorRequest(device.IP, "0")
+
+		// 如果DRPR请求成功，解析并存储DRPR数据
+		if err2 == nil && result != "" {
+			log.Printf("DRPR request successful, processing response for device %d", deviceID)
+
+			// 分割响应中的多个DRPR消息
+			lines := strings.Split(result, "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "^DRPR:") {
+					log.Printf("Processing DRPR line: %s", line)
+					err3 := h.drprMonitorService.ProcessDRPRMessage(uint(deviceID), line)
+					if err3 != nil {
+						log.Printf("Failed to process DRPR message: %v", err3)
+					} else {
+						log.Printf("Successfully processed DRPR message for device %d", deviceID)
+					}
+				}
+			}
+		}
+
+		// 停止DRPR监控
+		err3 := h.drprMonitorService.StopDRPRMonitoring(uint(deviceID))
+		if err3 != nil {
+			log.Printf("Failed to stop DRPR monitoring: %v", err3)
+		} else {
+			log.Printf("Successfully stopped DRPR monitoring for device %d", deviceID)
+		}
 	}
 
-	// 发送AT命令到设备
-	result, err := h.deviceCommService.SendATCommand(uint(deviceID), atCommand)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to send AT command: %v", err)})
+	if err2 != nil {
+		log.Printf("DRPR request failed for device %d: %v", deviceID, err2)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to send DRPR monitor request: %v", err2)})
 		return
 	}
 
@@ -984,13 +1060,15 @@ func (h *DeviceHandler) SetDrprReporting(c *gin.Context) {
 
 	err = h.configService.SaveDeviceConfigs(uint(deviceID), "debug", debugConfigs)
 	if err != nil {
+		// 记录错误但不影响主流程
+		fmt.Printf("Failed to save debug configs: %v\n", err)
 	}
 
 	// 记录日志
 	log := &model.DeviceLog{
 		DeviceID:  uint(deviceID),
 		Type:      "drpr_reporting",
-		Message:   fmt.Sprintf("DRPR reporting %s, AT command: %s, Result: %s", status, atCommand, result),
+		Message:   fmt.Sprintf("DRPR reporting %s, DdtcType: %s, Result: %s", status, map[bool]string{true: "1", false: "0"}[req.Enabled], result),
 		CreatedAt: time.Now(),
 	}
 	h.deviceService.CreateDeviceLog(log)
@@ -999,6 +1077,123 @@ func (h *DeviceHandler) SetDrprReporting(c *gin.Context) {
 		"message": fmt.Sprintf("DRPR reporting %s successfully", status),
 		"result":  result,
 	})
+}
+
+// sendDRPRMonitorRequest 发送DRPR监控请求到设备
+func (h *DeviceHandler) sendDRPRMonitorRequest(deviceIP, ddtcType string) (string, error) {
+	requestURL := fmt.Sprintf("http://%s/boafrm/formDRPRMonitor", deviceIP)
+	log.Printf("Sending DRPR request to: %s with DdtcType=%s", requestURL, ddtcType)
+
+	// 构建表单数据
+	formData := url.Values{}
+	formData.Set("DdtcType", ddtcType)
+
+	// 创建HTTP客户端
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// 尝试标准HTTP POST请求
+	resp, err := client.PostForm(requestURL, formData)
+	if err != nil {
+		log.Printf("Standard HTTP request failed: %v", err)
+
+		// 检查是否是MIME header错误，如果是则尝试raw TCP
+		if strings.Contains(err.Error(), "malformed MIME header line") || strings.Contains(err.Error(), "mime:") {
+			log.Printf("MIME header error detected, trying raw TCP approach")
+			return h.sendDRPRMonitorRequestRawTCP(deviceIP, ddtcType)
+		}
+
+		return "", fmt.Errorf("failed to send HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read response body: %v", err)
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	log.Printf("Device response: HTTP %d, Body: %s", resp.StatusCode, string(body))
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Device returned error status: %d", resp.StatusCode)
+		return "", fmt.Errorf("device returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	log.Printf("DRPR request successful")
+	return string(body), nil
+}
+
+// sendDRPRMonitorRequestRawTCP 使用原始TCP发送DRPR请求，避免MIME header问题
+func (h *DeviceHandler) sendDRPRMonitorRequestRawTCP(deviceIP, ddtcType string) (string, error) {
+	log.Printf("Using raw TCP for DRPR request to %s", deviceIP)
+
+	// 构建表单数据
+	formData := url.Values{}
+	formData.Set("DdtcType", ddtcType)
+	body := formData.Encode()
+
+	// 使用原始TCP连接
+	addr := fmt.Sprintf("%s:80", deviceIP)
+
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	conn, err := dialer.Dial("tcp", addr)
+	if err != nil {
+		log.Printf("Failed to connect to %s: %v", addr, err)
+		return "", fmt.Errorf("failed to connect to device: %v", err)
+	}
+	defer conn.Close()
+
+	// 设置连接超时
+	if err := conn.SetDeadline(time.Now().Add(30 * time.Second)); err != nil {
+		log.Printf("Failed to set connection deadline: %v", err)
+		return "", fmt.Errorf("failed to set connection deadline: %v", err)
+	}
+
+	// 构建HTTP请求
+	req := fmt.Sprintf("POST /boafrm/formDRPRMonitor HTTP/1.1\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
+		deviceIP, len(body), body)
+
+	log.Printf("Sending raw TCP request: %s", req)
+
+	_, err = conn.Write([]byte(req))
+	if err != nil {
+		log.Printf("Failed to write request: %v", err)
+		return "", fmt.Errorf("failed to write request: %v", err)
+	}
+
+	// 读取响应
+	reader := bufio.NewReader(conn)
+
+	// 跳过HTTP header
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			log.Printf("Failed to read header line: %v", err)
+			return "", fmt.Errorf("failed to read header: %v", err)
+		}
+		if line == "\r\n" || line == "\n" {
+			break
+		}
+	}
+
+	// 读取响应体
+	respBody, err := io.ReadAll(reader)
+	if err != nil {
+		log.Printf("Failed to read response body: %v", err)
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	responseText := strings.Trim(string(respBody), "\x00\r\n ")
+	log.Printf("Raw TCP response: %s", responseText)
+
+	return responseText, nil
 }
 
 // SetDebugSwitch 设置Debug Switch状态
@@ -1208,4 +1403,77 @@ func (h *DeviceHandler) ReportLinks(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Device links updated successfully"})
+}
+
+// GetDRPRMessages 获取设备的DRPR消息历史
+func (h *DeviceHandler) GetDRPRMessages(c *gin.Context) {
+	deviceID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		log.Printf("Invalid device ID in GetDRPRMessages: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "50")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 50
+	}
+
+	log.Printf("Getting DRPR messages for device %d with limit %d", deviceID, limit)
+
+	messages, err := h.drprMonitorService.GetDRPRMessages(uint(deviceID), limit)
+	if err != nil {
+		log.Printf("Error getting DRPR messages for device %d: %v", deviceID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Printf("Successfully retrieved %d DRPR messages for device %d", len(messages), deviceID)
+	c.JSON(http.StatusOK, gin.H{"messages": messages})
+}
+
+// GetDRPRMonitoringStatus 获取DRPR监控状态
+func (h *DeviceHandler) GetDRPRMonitoringStatus(c *gin.Context) {
+	deviceID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+
+	isActive := h.drprMonitorService.IsDRPRMonitoringActive(uint(deviceID))
+	c.JSON(http.StatusOK, gin.H{"is_active": isActive})
+}
+
+// TestDRPRFetch 测试DRPR数据获取（仅用于调试）
+func (h *DeviceHandler) TestDRPRFetch(c *gin.Context) {
+	deviceID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid device ID"})
+		return
+	}
+
+	// 获取设备信息
+	device, err := h.deviceService.GetDeviceByID(uint(deviceID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+		return
+	}
+
+	// 手动触发一次DRPR数据获取
+	log.Printf("Manually triggering DRPR fetch for device %d (%s)", deviceID, device.IP)
+
+	// 这里我们直接调用AT命令来测试
+	response, err := h.deviceCommService.SendATCommand(uint(deviceID), "AT^DRPR?")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to send AT command: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "DRPR test completed",
+		"response":  response,
+		"device_id": deviceID,
+		"device_ip": device.IP,
+	})
 }

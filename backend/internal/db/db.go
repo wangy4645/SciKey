@@ -37,6 +37,7 @@ func Init() (*gorm.DB, error) {
 		&model.ConfigTemplateDelete{}, &model.Topology{}, &model.MonitorData{},
 		&model.SecurityConfig{}, &model.NetworkConfig{}, &model.WirelessConfig{},
 		&model.SystemConfig{}, &model.UpDownConfig{}, &model.DebugConfig{},
+		&model.DRPRMessage{},
 	)
 	if err != nil {
 		return nil, err

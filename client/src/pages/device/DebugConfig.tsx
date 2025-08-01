@@ -43,8 +43,8 @@ const { Title, Text } = Typography;
 
 interface DebugConfigProps {
   device: Device;
-  onSave: (values: any) => Promise<void>;
-  loading: boolean;
+  onSave?: (values: any) => Promise<void>;
+  loading?: boolean;
 }
 
 interface DebugConfig {
@@ -70,9 +70,11 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
 
   // 状态管理
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
-  const [drprMessages, setDrprMessages] = useState<string[]>([]);
+  const [drprMessages, setDrprMessages] = useState<any[]>([]);
   const [atResult, setAtResult] = useState<string>('');
   const [shellResult, setShellResult] = useState<string>('');
+  const [drprInterval, setDrprInterval] = useState<NodeJS.Timeout | null>(null);
+  const [drprMonitoringActive, setDrprMonitoringActive] = useState<boolean>(false);
 
   // 获取当前配置
   useEffect(() => {
@@ -201,20 +203,20 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
               type="primary"
               size="large"
               icon={<PlayCircleOutlined />}
-              className={`${styles.hoppingButton} ${styles.openButton} ${config.drprReporting ? styles.activeButton : ''}`}
+              className={`${styles.hoppingButton} ${styles.openButton} ${drprMonitoringActive ? styles.activeButton : ''}`}
               onClick={handleDrprReportingToggle}
               loading={loading}
-              disabled={config.drprReporting}
+              disabled={drprMonitoringActive}
             >
               {t('Start')}
             </Button>
             <Button
               size="large"
               icon={<PauseCircleOutlined />}
-              className={`${styles.hoppingButton} ${styles.closeButton} ${!config.drprReporting ? styles.activeButton : ''}`}
+              className={`${styles.hoppingButton} ${styles.closeButton} ${!drprMonitoringActive ? styles.activeButton : ''}`}
               onClick={handleDrprReportingToggle}
               loading={loading}
-              disabled={!config.drprReporting}
+              disabled={!drprMonitoringActive}
             >
               {t('Pause')}
             </Button>
@@ -280,14 +282,52 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
       <div className={styles.dataTable}>
         <Table
           columns={[
-            { title: 'IP', dataIndex: 'ip', key: 'ip' },
-            { title: 'RSRP', dataIndex: 'rsrp', key: 'rsrp' },
-            { title: 'SNR', dataIndex: 'snr', key: 'snr' },
-            { title: 'DISTANCE', dataIndex: 'distance', key: 'distance' },
+            { 
+              title: 'IP', 
+              dataIndex: 'device_ip', 
+              key: 'device_ip',
+              render: () => device.ip,
+              width: 120
+            },
+            { 
+              title: 'RSRP', 
+              dataIndex: 'rsrp', 
+              key: 'rsrp',
+              width: 100,
+              render: (rsrp: string) => {
+                const value = Number(rsrp);
+                let color = '#52c41a'; // 绿色 - 良好
+                if (value <= -104) color = '#ff4d4f'; // 红色 - 很差
+                else if (value <= -85) color = '#faad14'; // 黄色 - 一般
+                return <span style={{ backgroundColor: color, padding: '2px 6px', borderRadius: '3px', color: 'white' }}>{rsrp}</span>;
+              }
+            },
+            { 
+              title: 'SNR', 
+              dataIndex: 'snr', 
+              key: 'snr',
+              width: 100,
+              render: (snr: string) => {
+                const value = Number(snr);
+                let color = '#52c41a'; // 绿色 - 良好
+                if (value < 0) color = '#ff4d4f'; // 红色 - 很差
+                else if (value < 10) color = '#faad14'; // 黄色 - 一般
+                return <span style={{ backgroundColor: color, padding: '2px 6px', borderRadius: '3px', color: 'white' }}>{snr}</span>;
+              }
+            },
+            { 
+              title: 'DISTANCE', 
+              dataIndex: 'distance', 
+              key: 'distance',
+              width: 100
+            },
           ]}
-          dataSource={[]}
+          dataSource={drprMessages}
           pagination={false}
           size="small"
+          rowKey={(record) => `${record.device_id}_${record.timestamp}_${record.index}`}
+          locale={{ emptyText: 'No DRPR data available' }}
+          scroll={{ x: 400 }}
         />
       </div>
     </Card>
@@ -422,12 +462,106 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
     }
   };
 
+  // 获取DRPR消息
+  const fetchDRPRMessages = async () => {
+    try {
+      console.log('Fetching DRPR messages for device:', device.id);
+      const response = await fetch(`http://localhost:8080/api/devices/${device.id}/debug/drpr/messages?limit=20`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      console.log('DRPR messages response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('DRPR messages data:', data);
+        setDrprMessages(data.messages || []);
+      } else {
+        console.error('Failed to fetch DRPR messages:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response body:', errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching DRPR messages:', error);
+    }
+  };
+
+  // 检查DRPR监控状态
+  const checkDRPRMonitoringStatus = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/devices/${device.id}/debug/drpr/status`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDrprMonitoringActive(data.is_active || false);
+      } else {
+        console.error('Failed to check DRPR monitoring status:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error checking DRPR monitoring status:', error);
+    }
+  };
+
+  // 开始DRPR监控
+  const startDRPRMonitoring = () => {
+    // 立即获取一次数据
+    fetchDRPRMessages();
+    
+    // 设置定时器，每5秒获取一次数据
+    const interval = setInterval(fetchDRPRMessages, 5000);
+    setDrprInterval(interval);
+    setDrprMonitoringActive(true);
+  };
+
+  // 停止DRPR监控
+  const stopDRPRMonitoring = () => {
+    if (drprInterval) {
+      clearInterval(drprInterval);
+      setDrprInterval(null);
+    }
+    setDrprMonitoringActive(false);
+  };
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (drprInterval) {
+        clearInterval(drprInterval);
+      }
+    };
+  }, [drprInterval]);
+
+  // 检查DRPR监控状态和启动监控
+  useEffect(() => {
+    const initializeDRPRMonitoring = async () => {
+      await checkDRPRMonitoringStatus();
+      
+      // 如果配置显示DRPR已启用，但监控状态未知，则启动监控
+      if (config.drprReporting && !drprMonitoringActive) {
+        startDRPRMonitoring();
+      }
+    };
+    
+    initializeDRPRMonitoring();
+  }, [device.id, config.drprReporting]);
+
   const handleDrprReportingToggle = async () => {
     try {
       const newValue = !config.drprReporting;
       await deviceConfigAPI.setDrprReporting(Number(device.id), newValue);
       setConfig(prev => ({ ...prev, drprReporting: newValue }));
+      
+      // 根据状态启动或停止监控
+      if (newValue) {
+        startDRPRMonitoring();
+      } else {
+        stopDRPRMonitoring();
+      }
     } catch (error) {
+      console.error('Error toggling DRPR reporting:', error);
       // 失败时不做多余处理
     }
   };

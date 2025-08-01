@@ -412,6 +412,85 @@
   padding: 8px 16px;
 }
 
+.debugConfig {
+  padding: 16px;
+}
+
+.card {
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.controls {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+}
+
+.dataTable {
+  margin-top: 16px;
+}
+
+.status {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+}
+
+.status p {
+  margin: 4px 0;
+  color: #52c41a;
+}
+
+/* 实时统计卡片样式 */
+.ant-statistic-title {
+  font-size: 12px;
+  color: #666;
+}
+
+.ant-statistic-content {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* 表格样式优化 */
+.ant-table-small .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f0f9ff;
+}
+
+/* 控制按钮样式 */
+.ant-btn {
+  border-radius: 6px;
+}
+
+.ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.ant-btn-danger {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+/* 开关样式 */
+.ant-switch {
+  background: #d9d9d9;
+}
+
+.ant-switch-checked {
+  background: #52c41a;
+}
+
 @media (max-width: 1024px) {
   .rsrpSnrGuide {
     width: 100%;
@@ -458,5 +537,17 @@
 
   .hoppingButton {
     width: 100%;
+  }
+
+  .debugConfig {
+    padding: 8px;
+  }
+  
+  .controls {
+    padding: 12px;
+  }
+  
+  .ant-space {
+    flex-wrap: wrap;
   }
 } 

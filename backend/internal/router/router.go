@@ -33,11 +33,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
-	// Serve React app for all non-API routes
-	r.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
-	})
-
 	// Create service instances, passing the DB connection
 	authService := service.NewAuthService(db)
 	deviceService := service.NewDeviceService(db)
@@ -47,10 +42,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	configService := service.NewConfigService(db, deviceRepo)
 	topologyService := service.NewTopologyService(db)
 	monitorService := service.NewMonitorService(db)
+	drprMonitorService := service.NewDRPRMonitorService(db, deviceService, deviceCommService)
 
 	// Create handler instances
 	authHandler := handler.NewAuthHandler(authService)
-	deviceHandler := handler.NewDeviceHandler(deviceService, deviceCommService, configService, topologyService) // Pass topologyService
+	deviceHandler := handler.NewDeviceHandler(deviceService, deviceCommService, configService, topologyService, drprMonitorService) // Pass topologyService and drprMonitorService
 	nodeHandler := handler.NewNodeHandler(nodeService)
 	configHandler := handler.NewConfigHandler(configService)
 	topologyHandler := handler.NewTopologyHandler(topologyService)
@@ -152,6 +148,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 		// DRPR Reporting routes
 		api.POST("/devices/:id/debug/drpr", deviceHandler.SetDrprReporting)
+		api.GET("/devices/:id/debug/drpr/messages", deviceHandler.GetDRPRMessages)
+		api.GET("/devices/:id/debug/drpr/status", deviceHandler.GetDRPRMonitoringStatus)
+		api.POST("/devices/:id/debug/drpr/test", deviceHandler.TestDRPRFetch) // Test endpoint for debugging
 		api.POST("/devices/:id/debug/switch", deviceHandler.SetDebugSwitch)
 
 		// Topology routes
@@ -174,5 +173,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		api.PUT("/alerts/:id/status", monitorHandler.UpdateAlertStatus)
 		api.GET("/devices/monitor/all", monitorHandler.GetAllDevicesMonitorData)
 	}
+
+	// Serve React app for all non-API routes (must be after API routes)
+	r.NoRoute(func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
 	return r
 }
