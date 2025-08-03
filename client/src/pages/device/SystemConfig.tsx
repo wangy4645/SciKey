@@ -131,7 +131,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     // 监听设备配置同步事件
     const handleDeviceConfigSync = (event: CustomEvent) => {
       if (event.detail && event.detail.deviceId === Number(device.id)) {
-        console.log('System config: Received sync event, refreshing data...');
+        // 收到同步事件，刷新数据
         fetchConfig();
       }
     };

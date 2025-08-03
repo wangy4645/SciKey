@@ -70,7 +70,7 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
           });
         }
       } catch (error) {
-        console.error('Failed to fetch device type config:', error);
+        // 获取设备类型配置失败
       }
     };
     fetchConfig();
@@ -91,7 +91,7 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
       const values = await form.validateFields();
       await onSave(values);
     } catch (error) {
-      console.error('Failed to save device type config:', error);
+      // 保存设备类型配置失败
     }
   };
 
@@ -151,7 +151,7 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
                   });
                 }
               } catch (error) {
-                console.error('Error syncing network role config:', error);
+                // 同步网络角色配置失败
               }
             }}
           />

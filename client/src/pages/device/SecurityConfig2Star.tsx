@@ -48,7 +48,7 @@ const SecurityConfig2Star: React.FC<SecurityConfig2StarProps> = ({ device, onCon
       await deviceConfigAPI.sendATCommand(device.id, `AT^DCIAC=${values.algo}`);
       await deviceConfigAPI.sendATCommand(device.id, `AT^DAPI=\"${values.key}\"`);
       message.success(t('Security parameters updated successfully'));
-      onConfigUpdate();
+      // 不调用onConfigUpdate以避免页面跳转，让用户停留在当前页面
     } catch (e) {
       message.error(t('Failed to update security parameters'));
     }

@@ -24,497 +24,152 @@
   padding: 24px;
 }
 
-.currentConfig {
-  margin-bottom: 20px;
+.card :global(.ant-form-item) {
+  margin-bottom: 24px;
 }
 
-.statusDisplay {
-  margin-top: 8px;
-}
-
-.statusIndicator {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background-color: #f5f5f5;
-  border: 1px solid #e8e8e8;
-}
-
-.statusActive {
-  background-color: #f6ffed;
-  border-color: #b7eb8f;
-}
-
-.statusInactive {
-  background-color: #fff2f0;
-  border-color: #ffccc7;
-}
-
-.statusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.statusActive .statusDot {
-  background-color: #52c41a;
-}
-
-.statusInactive .statusDot {
-  background-color: #ff4d4f;
-}
-
-.statusText {
+.card :global(.ant-form-item-label) {
   font-weight: 500;
-  color: #262626;
 }
 
-.controlDescription {
-  margin-bottom: 24px;
-}
-
-.controlDescription p {
-  color: #595959;
-  margin-bottom: 8px;
-}
-
-.hoppingButtons {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-}
-
-.drprButtons {
-  flex-direction: column !important;
-  justify-content: flex-start;
-  align-items: stretch;
-}
-
-.drprButtons .hoppingButton {
-  min-width: 120px;
-  max-width: 220px;
-  width: auto;
-  margin: 0 auto;
-}
-
-.hoppingButton {
-  min-width: 120px;
-  max-width: 220px;
-  width: auto;
-  height: 48px;
-  border-radius: 8px;
-  border: 2px solid #e8e8e8;
-  transition: all 0.3s ease;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.hoppingButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.hoppingButton.activeButton {
-  border-color: #1890ff;
-  background-color: #e6f7ff;
-}
-
-.openButton {
-  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
-  border-color: #52c41a;
-  color: white;
-}
-
-.openButton:hover {
-  background: linear-gradient(135deg, #389e0d 0%, #52c41a 100%);
-  border-color: #389e0d;
-}
-
-.closeButton {
-  background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
-  border-color: #ff4d4f;
-  color: white;
-}
-
-.closeButton:hover {
-  background: linear-gradient(135deg, #cf1322 0%, #ff4d4f 100%);
-  border-color: #cf1322;
-}
-
-.hoppingButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.messagesSection {
-  margin-top: 0;
-  margin-left: 0;
-  clear: none;
-}
-
-.messagesContainer {
-  max-height: 500px;
-  overflow-y: auto;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  padding: 12px;
-  background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.messageItem {
-  padding: 4px 0;
-  border-bottom: 1px solid #f0f0f0;
-  font-family: 'Courier New', monospace;
-  font-size: 13px;
-}
-
-.messageItem:last-child {
-  border-bottom: none;
-}
-
-.rsrpSnrGuide {
-  margin-bottom: 16px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 6px;
-  padding: 12px;
-  border: 1px solid #dee2e6;
+.card :global(.ant-input),
+.card :global(.ant-select),
+.card :global(.ant-input-number) {
   width: 100%;
 }
 
-.qualitySection {
-  margin-bottom: 8px;
+.card :global(.ant-switch) {
+  margin-right: 8px;
 }
 
-.qualitySection :global(.ant-typography) {
-  margin-bottom: 8px !important;
-  color: #495057;
-  font-weight: 600;
-  font-size: 14px;
+.card :global(.ant-btn) {
+  margin-right: 8px;
 }
 
-.qualityGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.card :global(.ant-space) {
+  margin-top: 24px;
 }
 
-.qualityItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.securityLevel {
+  display: inline-block;
   padding: 4px 8px;
-  background-color: #fff;
   border-radius: 4px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  font-size: 12px;
 }
 
-.qualityItem:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.securityLevelHigh {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
 }
 
-.qualityTag {
-  width: 70px;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 6px;
-  border-radius: 3px;
-  flex-shrink: 0;
+.securityLevelMedium {
+  background-color: #fff7e6;
+  border: 1px solid #ffd591;
+  color: #fa8c16;
 }
 
-.qualityTagRed {
-  background-color: #ffebee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
+.securityLevelLow {
+  background-color: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #f5222d;
 }
 
-.qualityTagOrange {
-  background-color: #fff3e0;
-  color: #ef6c00;
-  border: 1px solid #ffcc02;
+.tabIcon {
+  margin-right: 8px;
 }
 
-.qualityTagGold {
-  background-color: #fff8e1;
-  color: #f57f17;
-  border: 1px solid #ffecb3;
-}
-
-.qualityTagBlue {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
-}
-
-.qualityTagGreen {
-  background-color: #e8f5e8;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
-}
-
-.qualityValue {
-  font-size: 11px;
-  color: #6c757d;
-  font-weight: 500;
+.formActions {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
   text-align: right;
 }
 
-.messageItem {
-  padding: 6px 8px;
-  border-bottom: 1px solid #f0f0f0;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+.formActions :global(.ant-btn) {
+  margin-left: 8px;
+}
+
+.description {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.required {
+  color: #ff4d4f;
+  margin-right: 4px;
+}
+
+.helpText {
+  color: #595959;
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.errorText {
+  color: #ff4d4f;
   font-size: 12px;
-  line-height: 1.4;
-  background-color: #fff;
-  margin-bottom: 2px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  margin-top: 4px;
 }
 
-.messageItem:hover {
-  background-color: #f8f9fa;
+.successText {
+  color: #52c41a;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
-.messageItem:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.messageTimestamp {
-  color: #6c757d;
+.warningText {
+  color: #d48806;
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+  line-height: 1.5;
   font-weight: 500;
-  margin-right: 8px;
 }
 
-.messageContent {
+.infoText {
+  color: #1890ff;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.currentKeySection {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.currentKeyLabel {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
   color: #495057;
 }
 
-/* 紧凑布局优化 */
-.compactLayout {
-  display: grid;
-  grid-template-columns: 25% 75%;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.compactGuide {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.controlSection {
-  margin-top: 20px;
-}
-
-.drprHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 4px 0;
-}
-
-.drprStatus {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.drprStatusIndicator {
-  display: flex;
-  align-items: center;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background-color: #f5f5f5;
-  border: 1px solid #e8e8e8;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.drprStatusActive {
-  background-color: #f6ffed;
-  border-color: #b7eb8f;
-  color: #52c41a;
-}
-
-.drprStatusInactive {
-  background-color: #fff2f0;
-  border-color: #ffccc7;
-  color: #ff4d4f;
-}
-
-.drprStatusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.drprStatusActive .drprStatusDot {
-  background-color: #52c41a;
-}
-
-.drprStatusInactive .drprStatusDot {
-  background-color: #ff4d4f;
-}
-
-/* DRPR Reporting 新布局样式 */
-/* 优化 signalLegend 区块样式 */
-.signalLegend {
-  background-color: #fafafa;
-  padding: 16px;
-  border-radius: 6px;
-  border: 1px solid #e8e8e8;
-}
-
-.signalLegend h4 {
-  margin: 0 0 12px 0;
+.currentKeyValue {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 14px;
-  font-weight: 500;
   color: #262626;
-}
-
-.legendItem {
-  padding: 6px 12px;
-  margin-bottom: 4px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #262626;
-  font-weight: 500;
-}
-
-.legendItem:last-child {
-  margin-bottom: 0;
-}
-
-.dataTable {
-  margin-top: 16px;
-}
-
-.dataTable :global(.ant-table-thead > tr > th) {
-  background-color: #f5f5f5;
-  font-weight: 500;
-  color: #262626;
-}
-
-.dataTable :global(.ant-table-tbody > tr > td) {
-  padding: 8px 16px;
-}
-
-.debugConfig {
-  padding: 16px;
-}
-
-.card {
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.controls {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #fafafa;
+  background-color: #fafafa;
+  padding: 10px 14px;
+  border: 1px solid #e8e8e8;
   border-radius: 6px;
-  border: 1px solid #d9d9d9;
-}
-
-.dataTable {
-  margin-top: 16px;
-}
-
-.status {
-  margin-top: 16px;
-  padding: 12px;
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-  border-radius: 6px;
-}
-
-.status p {
-  margin: 4px 0;
-  color: #52c41a;
-}
-
-/* 实时统计卡片样式 */
-.ant-statistic-title {
-  font-size: 12px;
-  color: #666;
-}
-
-.ant-statistic-content {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-/* 表格样式优化 */
-.ant-table-small .ant-table-thead > tr > th {
-  background: #fafafa;
-  font-weight: 600;
-}
-
-.ant-table-tbody > tr:hover > td {
-  background: #f0f9ff;
-}
-
-/* 控制按钮样式 */
-.ant-btn {
-  border-radius: 6px;
-}
-
-.ant-btn-primary {
-  background: #1890ff;
-  border-color: #1890ff;
-}
-
-.ant-btn-danger {
-  background: #ff4d4f;
-  border-color: #ff4d4f;
-}
-
-/* 开关样式 */
-.ant-switch {
-  background: #d9d9d9;
-}
-
-.ant-switch-checked {
-  background: #52c41a;
-}
-
-@media (max-width: 1024px) {
-  .rsrpSnrGuide {
-    width: 100%;
-  }
-  
-  .compactLayout {
-    grid-template-columns: 1fr;
-  }
-  
-  .compactGuide {
-    gap: 16px;
-  }
-  
-  .controlSection {
-    margin-top: 16px;
-  }
-  
-  .messagesSection {
-    margin-top: 20px;
-  }
-  
-  .qualityGrid {
-    grid-template-columns: 1fr;
-  }
+  word-break: break-all;
+  min-height: 22px;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
 }
 
 /* 响应式设计 */
@@ -531,23 +186,8 @@
     padding: 16px;
   }
 
-  .hoppingButtons {
-    flex-direction: column;
-  }
-
-  .hoppingButton {
-    width: 100%;
-  }
-
-  .debugConfig {
-    padding: 8px;
-  }
-  
-  .controls {
-    padding: 12px;
-  }
-  
-  .ant-space {
-    flex-wrap: wrap;
+  .formActions {
+    margin-top: 16px;
+    padding-top: 16px;
   }
 } 

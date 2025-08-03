@@ -14,6 +14,7 @@ import Board1Config from './device/Board1Config';
 import Board1MeshConfig from './device/Board1MeshConfig';
 import Board6680Config from './device/Board6680Config';
 import Board2StarConfig from './device/Board2StarConfig';
+import Board2MeshConfig from './device/Board2MeshConfig';
 
 const DeviceConfig: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -86,6 +87,8 @@ const DeviceConfig: React.FC = () => {
       case 'board_2.0_star':
       case '2.0_star':
         return <Board2StarConfig {...props} />;
+      case 'board_2.0_mesh':
+        return <Board2MeshConfig {...props} />;
       default:
         return (
           <div style={{ textAlign: 'center', padding: '50px' }}>

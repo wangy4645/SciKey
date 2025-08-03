@@ -65,6 +65,8 @@ const Devices: React.FC = () => {
         return t('Board 1.0 Mesh');
       case 'board_2.0_star':
         return t('Board 2.0 Star');
+      case 'board_2.0_mesh':
+        return t('Board 2.0 Mesh');
       default:
         return type?.toUpperCase() || t('Unknown');
     }
@@ -172,15 +174,22 @@ const Devices: React.FC = () => {
       
       // 如果当前在设备配置页面，通过URL参数触发刷新
       if (window.location.pathname.includes(`/devices/${deviceId}/config`)) {
-        // 添加时间戳参数来触发组件重新渲染
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('refresh', Date.now().toString());
-        window.history.replaceState({}, '', currentUrl.toString());
+        // 检查当前是否在Security配置页面，如果是则不触发页面刷新
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentTab = urlParams.get('tab');
         
-        // 触发一个自定义事件，通知配置组件刷新数据
-        window.dispatchEvent(new CustomEvent('deviceConfigSync', { 
-          detail: { deviceId, syncData } 
-        }));
+        // 只有在非Security配置页面时才触发页面刷新
+        if (currentTab !== 'encryption') {
+          // 添加时间戳参数来触发组件重新渲染
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('refresh', Date.now().toString());
+          window.history.replaceState({}, '', currentUrl.toString());
+          
+          // 触发一个自定义事件，通知配置组件刷新数据
+          window.dispatchEvent(new CustomEvent('deviceConfigSync', { 
+            detail: { deviceId, syncData } 
+          }));
+        }
       }
     } catch (error: any) {
       message.error(t('Failed to sync device configuration'));
@@ -307,7 +316,7 @@ const Devices: React.FC = () => {
             />
           </Tooltip>
           {/* 只对支持重启的板卡显示重启按钮 */}
-          {record.board_type === 'board_1.0_mesh' && (
+          {(record.board_type === 'board_1.0_mesh' || record.board_type === 'board_2.0_mesh') && (
             <Popconfirm
               title={t('Reboot Device')}
               description={t('Are you sure you want to reboot this device?')}
@@ -545,6 +554,7 @@ const Devices: React.FC = () => {
               <Option value="board_1.0_star">Board 1.0 Star</Option>
               <Option value="board_1.0_mesh">Board 1.0 Mesh</Option>
               <Option value="board_2.0_star">Board 2.0 Star</Option>
+              <Option value="board_2.0_mesh">Board 2.0 Mesh</Option>
             </Select>
           </Form.Item>
 

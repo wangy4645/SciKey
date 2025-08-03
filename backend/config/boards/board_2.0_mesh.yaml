@@ -1,0 +1,462 @@
+# 2.0版本mesh单板AT指令配置
+board_type: "2.0_mesh"
+description: "2.0版本mesh单板AT指令集"
+version: "2.0"
+
+commands:
+  # 基础功能命令
+  get_device_info:
+    at_command: "AT^DGMR?"
+    description: "查询本端版本信息"
+    response_format: "text"
+
+  get_ip_address:
+    at_command: "AT^DUIP?"
+    description: "查询本端IP地址信息"
+    response_format: "text"
+
+  # 设备功能控制
+  set_phone_functionality:
+    at_command: "AT+CFUN=%d"
+    description: "设置MT功能等级"
+    parameters:
+      - name: "fun"
+        type: "int"
+        values: [0, 1]
+        description: "0:关机, 1:开机"
+
+  get_phone_functionality:
+    at_command: "AT+CFUN?"
+    description: "查询MT功能等级"
+    response_format: "text"
+
+  # 接入状态配置
+  get_access_state:
+    at_command: "AT^DACS?"
+    description: "获取接入状态上报开关"
+    response_format: "text"
+
+  set_access_state:
+    at_command: "AT^DACS=%d"
+    description: "设置接入状态上报"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:关闭, 1:开启, 2:WEBUI上报"
+
+  # 无线参数配置
+  get_radio_params:
+    at_command: "AT^DRPC?"
+    description: "获取无线参数配置"
+    response_format: "text"
+
+  set_radio_params:
+    at_command: "AT^DRPC=%d,%d,\"%s\""
+    description: "设置无线参数"
+    parameters:
+      - name: "freq"
+        type: "int"
+        description: "频点频率(100KHz)"
+      - name: "bandwidth"
+        type: "int"
+        description: "带宽(0:1.4M, 1:3M, 2:5M, 3:10M, 4:15M, 5:20M)"
+      - name: "power"
+        type: "string"
+        description: "发射功率(dBm), 范围-40到40"
+
+  # 网络接口配置
+  get_network_config:
+    at_command: "AT^NETIFCFG?"
+    description: "获取网络接口配置"
+    response_format: "text"
+
+  set_network_config:
+    at_command: "AT^NETIFCFG=%d,\"%s\",\"%s\",\"%s\""
+    description: "设置网络接口配置"
+    parameters:
+      - name: "type"
+        type: "int"
+        values: [2, 3, 4]
+        description: "2:IP, 3:IP+MASK, 4:IP+MASK+GATEWAY"
+      - name: "master_ip"
+        type: "string"
+        description: "主IP地址"
+      - name: "sub_mask"
+        type: "string"
+        description: "子网掩码"
+      - name: "gateway"
+        type: "string"
+        description: "网关地址"
+
+  # 接入密钥配置
+  get_access_password:
+    at_command: "AT^DAPI?"
+    description: "获取接入密钥"
+    response_format: "text"
+
+  set_access_password:
+    at_command: "AT^DAPI=\"%s\""
+    description: "设置接入密钥"
+    parameters:
+      - name: "password_id"
+        type: "string"
+        description: "密钥ID(十六进制格式, 最长64字符)"
+
+  # 无线参数存储
+  get_radio_params_store:
+    at_command: "AT^DRPS?"
+    description: "获取存储的无线参数"
+    response_format: "text"
+
+  set_radio_params_store:
+    at_command: "AT^DRPS=%d,%d,\"%s\""
+    description: "存储无线参数"
+    parameters:
+      - name: "freq"
+        type: "int"
+        description: "频点频率(100KHz)"
+      - name: "bandwidth"
+        type: "int"
+        description: "带宽(0:1.4M, 1:3M, 2:5M, 3:10M, 4:15M, 5:20M)"
+      - name: "power"
+        type: "string"
+        description: "发射功率(dBm), 范围-40到40"
+
+  # 无线参数上报
+  get_radio_param_report:
+    at_command: "AT^DRPR?"
+    description: "获取无线参数上报状态"
+    response_format: "text"
+
+  set_radio_param_report:
+    at_command: "AT^DRPR=%d"
+    description: "设置无线参数上报"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:关闭, 1:开启, 2:WEBUI上报"
+
+  # 频段配置
+  get_band_config:
+    at_command: "AT^DAOCNDI?"
+    description: "获取用户频段配置"
+    response_format: "text"
+
+  set_band_config:
+    at_command: "AT^DAOCNDI=%s,%s"
+    description: "设置用户频段配置"
+    parameters:
+      - name: "pcell_band_bitmap"
+        type: "string"
+        description: "主小区频段位图(十六进制)"
+      - name: "scell_band_bitmap"
+        type: "string"
+        description: "辅小区频段位图(十六进制)"
+
+  # 设备类型配置
+  get_device_type:
+    at_command: "AT^DDTC?"
+    description: "获取设备类型配置"
+    response_format: "text"
+
+  set_device_type:
+    at_command: "AT^DDTC=%d"
+    description: "设置设备类型"
+    parameters:
+      - name: "type"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:自组网节点, 1:中心节点, 2:接入节点"
+
+  # 加密算法配置
+  get_encryption_algorithm:
+    at_command: "AT^DCIAC?"
+    description: "获取加密算法配置"
+    response_format: "text"
+
+  set_encryption_algorithm:
+    at_command: "AT^DCIAC=%d"
+    description: "设置加密算法"
+    parameters:
+      - name: "algorithm"
+        type: "int"
+        values: [0, 1, 2, 3]
+        description: "加密算法(0:无加密, 1:SNOW, 2:AES, 3:ZUC)"
+
+  # TDD配置
+  get_tdd_config:
+    at_command: "AT^DSTC?"
+    description: "获取TDD配置"
+    response_format: "text"
+
+  set_tdd_config:
+    at_command: "AT^DSTC=%d"
+    description: "设置TDD配置"
+    parameters:
+      - name: "config"
+        type: "int"
+        values: [0, 1, 2, 3]
+        description: "TDD配置(0:2D3U, 1:3D2U, 2:4D1U, 3:1D4U)"
+
+  # 跳频控制
+  get_frequency_hopping:
+    at_command: "AT^DFHC?"
+    description: "获取跳频控制状态"
+    response_format: "text"
+
+  set_frequency_hopping:
+    at_command: "AT^DFHC=%d,%d"
+    description: "设置跳频控制"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1]
+        description: "0:关闭跳频, 1:开启跳频"
+      - name: "HopInterval"
+        type: "int"
+        description: "跳频间隔(秒, 0-60)"
+
+  # 可达节点查询
+  get_accessible_nodes:
+    at_command: "AT^DIPAN"
+    description: "获取所有可达节点IP地址列表"
+    response_format: "text"
+
+  # UART波特率配置
+  get_uart_baud_rate:
+    at_command: "AT^DUBR?"
+    description: "获取UART波特率配置"
+    response_format: "text"
+
+  set_uart_baud_rate:
+    at_command: "AT^DUBR=%d"
+    description: "设置UART波特率"
+    parameters:
+      - name: "rate"
+        type: "int"
+        values: [1200, 2400, 4800, 9600, 19200, 28800, 38400, 57600, 76800, 115200, 230400, 460800, 921600, 1152000, 2304000, 3750000, 4000000]
+        description: "波特率"
+
+  # 路由信息上报
+  get_route_info_report:
+    at_command: "AT^DSONRIRPT?"
+    description: "获取路由信息上报开关"
+    response_format: "text"
+
+  set_route_info_report:
+    at_command: "AT^DSONRIRPT=%d"
+    description: "设置路由信息上报"
+    parameters:
+      - name: "operation_type"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:关闭, 1:开启, 2:查询"
+
+  # 固定路由管理
+  set_fixed_route:
+    at_command: "AT^DSONRICFG=%d,%s,%s"
+    description: "设置固定路由"
+    parameters:
+      - name: "op"
+        type: "int"
+        values: [0, 1, 2, 3]
+        description: "0:增加路由, 1:删除路由, 2:删除全部路由, 3:删除全部路由并清空"
+      - name: "dst_sn"
+        type: "string"
+        description: "目的节点SN(7位16进制)"
+      - name: "nxt_sn"
+        type: "string"
+        description: "下一跳节点SN(7位16进制)"
+
+  # 主控节点信息
+  get_master_node_info:
+    at_command: "AT^DSONMIRPT?"
+    description: "获取主控节点信息上报开关"
+    response_format: "text"
+
+  set_master_node_info:
+    at_command: "AT^DSONMIRPT=%d"
+    description: "设置主控节点信息上报"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1, 2]
+        description: "0:关闭, 1:开启, 2:查询"
+
+  # 在网节点IP查询
+  get_network_nodes_ip:
+    at_command: "AT^DSONIPNN?"
+    description: "获取在网节点IP查询开关"
+    response_format: "text"
+
+  set_network_nodes_ip:
+    at_command: "AT^DSONIPNN=%d"
+    description: "设置在网节点IP查询"
+    parameters:
+      - name: "mode"
+        type: "int"
+        values: [0, 1, 2, 3]
+        description: "查询模式"
+
+  # CA MIMO能力配置
+  get_ca_mimo_capability:
+    at_command: "AT^DSONSCAP?"
+    description: "获取CA MIMO能力配置"
+    response_format: "text"
+
+  set_ca_mimo_capability:
+    at_command: "AT^DSONSCAP=%d"
+    description: "设置CA MIMO能力"
+    parameters:
+      - name: "mode"
+        type: "int"
+        values: [0, 1, 2, 3]
+        description: "0:不支持CA MIMO, 1:支持CA, 2:支持MIMO, 3:支持CA+MIMO"
+
+  # 锁频配置
+  get_lock_frequency:
+    at_command: "AT^DLF?"
+    description: "获取锁频配置"
+    response_format: "text"
+
+  set_lock_frequency:
+    at_command: "AT^DLF=%d,%d,%d"
+    description: "设置锁频配置"
+    parameters:
+      - name: "lock_type"
+        type: "int"
+        values: [0, 1]
+        description: "0:不锁频, 1:锁定指定频点"
+      - name: "pcell_freq"
+        type: "int"
+        description: "主小区频点(100KHz)"
+      - name: "scell_freq"
+        type: "int"
+        description: "辅小区频点(100KHz)"
+
+  # 子频段范围配置
+  get_sub_band_range:
+    at_command: "AT^DSONSBR?"
+    description: "获取子频段范围配置"
+    response_format: "text"
+
+  set_sub_band_range:
+    at_command: "AT^DSONSBR=%d,%d,%d"
+    description: "设置子频段范围"
+    parameters:
+      - name: "band"
+        type: "int"
+        values: [64, 65, 66, 67, 69, 70, 71, 73]
+        description: "子频段编号"
+      - name: "earfcn_start"
+        type: "int"
+        description: "起始频点号"
+      - name: "earfcn_end"
+        type: "int"
+        description: "结束频点号"
+
+  # 固定功率配置
+  get_fixed_tx_power:
+    at_command: "AT^DSONSFTP?"
+    description: "获取固定功率配置"
+    response_format: "text"
+
+  set_fixed_tx_power:
+    at_command: "AT^DSONSFTP=%d,\"%s\""
+    description: "设置固定功率"
+    parameters:
+      - name: "mode"
+        type: "int"
+        values: [0, 1]
+        description: "0:关闭固定功率, 1:开启固定功率"
+      - name: "power"
+        type: "string"
+        description: "固定功率值(dBm)"
+
+  # 连续无线信号长发配置
+  get_continuous_tx:
+    at_command: "AT^DSONCTX?"
+    description: "获取连续无线信号长发配置"
+    response_format: "text"
+
+  set_continuous_tx:
+    at_command: "AT^DSONCTX=%d,%d,%d,\"%s\",%d,%d"
+    description: "设置连续无线信号长发"
+    parameters:
+      - name: "mode"
+        type: "int"
+        values: [0, 1]
+        description: "0:关闭长发, 1:开启长发"
+      - name: "freq"
+        type: "int"
+        description: "频点频率(100KHz)"
+      - name: "bandwidth"
+        type: "int"
+        description: "带宽"
+      - name: "power"
+        type: "string"
+        description: "功率(dBm)"
+      - name: "tx_mode"
+        type: "int"
+        values: [0, 1]
+        description: "发送方式(0:单天线, 1:双天线)"
+      - name: "single_tone"
+        type: "int"
+        values: [0, 1]
+        description: "单音方式(0:调制, 1:单音)"
+
+  # ELog功能配置
+  get_elog_function:
+    at_command: "AT^ELFUN?"
+    description: "获取ELog功能配置"
+    response_format: "text"
+
+  set_elog_function:
+    at_command: "AT^ELFUN=%d"
+    description: "设置ELog功能"
+    parameters:
+      - name: "mode"
+        type: "int"
+        values: [0, 1]
+        description: "0:关闭ELog, 1:开启ELog"
+
+  # APLog功能配置
+  get_aplog_function:
+    at_command: "AT^APLFUN?"
+    description: "获取APLog功能配置"
+    response_format: "text"
+
+  set_aplog_function:
+    at_command: "AT^APLFUN=%d"
+    description: "设置APLog功能"
+    parameters:
+      - name: "n"
+        type: "int"
+        values: [0, 1]
+        description: "0:关闭APLog, 1:开启APLog"
+
+  # 终端类型设置
+  get_ue_type:
+    at_command: "AT^DSONUETS?"
+    description: "获取终端类型"
+    response_format: "text"
+
+  set_ue_type:
+    at_command: "AT^DSONUETS=%d"
+    description: "设置终端类型"
+    parameters:
+      - name: "type"
+        type: "int"
+        values: [0, 1]
+        description: "0:一般终端, 1:手持终端"
+
+  # 系统控制命令
+  reboot_device:
+    at_command: "AT^POWERCTL=1"
+    description: "重启设备"
+
+  restore_factory_settings:
+    at_command: "AT^RECOVSET=1"
+    description: "恢复出厂设置" 

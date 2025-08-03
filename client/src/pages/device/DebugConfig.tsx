@@ -112,7 +112,7 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
     // 监听设备配置同步事件
     const handleDeviceConfigSync = (event: CustomEvent) => {
       if (event.detail && event.detail.deviceId === Number(device.id)) {
-        console.log('Debug config: Received sync event, refreshing data...');
+        // 收到同步事件，刷新数据
         fetchConfig();
       }
     };
@@ -465,24 +465,18 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
   // 获取DRPR消息
   const fetchDRPRMessages = async () => {
     try {
-      console.log('Fetching DRPR messages for device:', device.id);
       const response = await fetch(`http://localhost:8080/api/devices/${device.id}/debug/drpr/messages?limit=20`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      console.log('DRPR messages response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('DRPR messages data:', data);
         setDrprMessages(data.messages || []);
       } else {
-        console.error('Failed to fetch DRPR messages:', response.status, response.statusText);
         const errorText = await response.text();
-        console.error('Error response body:', errorText);
       }
     } catch (error) {
-      console.error('Error fetching DRPR messages:', error);
     }
   };
 
@@ -498,10 +492,8 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
         const data = await response.json();
         setDrprMonitoringActive(data.is_active || false);
       } else {
-        console.error('Failed to check DRPR monitoring status:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error checking DRPR monitoring status:', error);
     }
   };
 
@@ -561,7 +553,6 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
         stopDRPRMonitoring();
       }
     } catch (error) {
-      console.error('Error toggling DRPR reporting:', error);
       // 失败时不做多余处理
     }
   };
@@ -591,7 +582,6 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
                     });
                   }
                 } catch (error) {
-                  console.error('Error fetching debug config:', error);
                 }
               };
               fetchConfig();

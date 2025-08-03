@@ -451,9 +451,9 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId, isMe
                     setConfig(configData);
                     form.setFieldsValue(configData);
                   }
-                } catch (error) {
-                  console.error('Error fetching security config:', error);
-                } finally {
+                      } catch (error) {
+        // 获取安全配置失败
+      } finally {
                   setLoading(false);
                 }
               };

@@ -65,7 +65,7 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
           });
         }
       } catch (error) {
-        console.error('Failed to fetch UP-DOWN config:', error);
+        // 获取UP-DOWN配置失败
       }
     };
     
@@ -74,7 +74,7 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
     // 监听设备配置同步事件
     const handleDeviceConfigSync = (event: CustomEvent) => {
       if (event.detail && event.detail.deviceId === Number(device.id)) {
-        console.log('UpDown config: Received sync event, refreshing data...');
+        // 收到同步事件，刷新数据
         fetchConfig();
       }
     };
@@ -149,7 +149,7 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
                     });
                   }
                 } catch (error) {
-                  console.error('Error fetching UP-DOWN config:', error);
+                  // 获取UP-DOWN配置失败
                 }
               };
               fetchConfig();

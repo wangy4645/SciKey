@@ -51,7 +51,16 @@ const SyncButton: React.FC<SyncButtonProps> = ({
       const { success_count, total_commands } = result;
       
       if (success_count === 0) {
-        message.error(t('Device is unreachable. Please check network connection and device status.'));
+        // 检查是否有具体的AT命令错误信息
+        const hasATCommandErrors = Object.values(result.sync_results || {}).some((cmdResult: any) => 
+          cmdResult.error && cmdResult.error.includes('AT command execution failed')
+        );
+        
+        if (hasATCommandErrors) {
+          message.error(t('AT command execution failed. Please check device configuration and try again.'));
+        } else {
+          message.error(t('Device is unreachable. Please check network connection and device status.'));
+        }
       } else if (success_count < total_commands) {
         message.warning(t('Configuration partially synchronized. Some commands failed.'));
       } else {
@@ -63,7 +72,13 @@ const SyncButton: React.FC<SyncButtonProps> = ({
       
     } catch (error: any) {
       console.error('Sync error:', error);
-      message.error(error.response?.data?.error || t('Failed to sync configuration'));
+      // 检查错误信息是否包含AT命令执行失败
+      const errorMessage = error.response?.data?.error || t('Failed to sync configuration');
+      if (errorMessage.includes('AT command execution failed')) {
+        message.error(t('AT command execution failed. Please check device configuration and try again.'));
+      } else {
+        message.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

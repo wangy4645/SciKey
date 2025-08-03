@@ -475,6 +475,7 @@ const resources = {
       'Select TDD configuration': '选择上下行配置',
       'TDD configuration saved successfully': '上下行配置保存成功',
       'TDD configuration reset': '上下行配置已重置',
+      'AT command execution failed. Please check device configuration and try again.': 'AT命令执行失败，请检查设备配置后重试。',
       
       // System Settings
       'System Settings': '系统设置',
