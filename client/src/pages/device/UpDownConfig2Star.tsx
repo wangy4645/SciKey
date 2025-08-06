@@ -55,7 +55,7 @@ const UpDownConfig2Star: React.FC<UpDownConfig2StarProps> = ({ device, onConfigU
 
   return (
     <div className={styles.container}>
-      <Card className={styles.card} title={t('UpDown Config')}
+      <Card className={styles.card} title={t('TS Config')}
         extra={<Button type="primary" icon={<SyncOutlined />} onClick={async () => {
           setLoading(true);
           await deviceConfigAPI.syncDeviceConfigByType(device.id, 'up_down');

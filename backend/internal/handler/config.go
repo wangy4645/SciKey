@@ -128,6 +128,8 @@ func (h *ConfigHandler) GetNetworkConfig(c *gin.Context) {
 		return
 	}
 
+	log.Printf("GetNetworkConfig for device %d: %+v", deviceID, configs)
+
 	c.JSON(http.StatusOK, gin.H{
 		"config": configs,
 	})
@@ -231,6 +233,16 @@ func (h *ConfigHandler) GetWirelessConfig(c *gin.Context) {
 		return
 	}
 
+	// 检查是否有时间戳参数，用于缓存破坏
+	timestamp := c.Query("t")
+	if timestamp != "" {
+		log.Printf("GetWirelessConfig: Request with timestamp %s for device %d", timestamp, deviceID)
+	}
+
+	log.Printf("GetWirelessConfig: Calling GetDeviceConfigs for device %d, category 'wireless'", deviceID)
+	log.Printf("GetWirelessConfig: Request URL: %s", c.Request.URL.String())
+	log.Printf("GetWirelessConfig: Request method: %s", c.Request.Method)
+	log.Printf("GetWirelessConfig: Request headers: %v", c.Request.Header)
 	config, err := h.configService.GetDeviceConfigs(uint(deviceID), "wireless")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -284,8 +296,22 @@ func (h *ConfigHandler) GetWirelessConfig(c *gin.Context) {
 		log.Printf("Response config: %+v", responseConfig)
 
 		c.JSON(http.StatusOK, gin.H{"config": responseConfig})
+	} else if configMap, ok := config.(map[string]interface{}); ok {
+		// 处理从DeviceConfig表读取的配置数据
+		log.Printf("GetWirelessConfig: Config is map[string]interface{}, returning as is")
+		log.Printf("Config map: %+v", configMap)
+		// 打印map的键和值
+		keys := make([]string, 0, len(configMap))
+		values := make([]interface{}, 0, len(configMap))
+		for k, v := range configMap {
+			keys = append(keys, k)
+			values = append(values, v)
+		}
+		log.Printf("Config map keys: %v", keys)
+		log.Printf("Config map values: %v", values)
+		c.JSON(http.StatusOK, gin.H{"config": configMap})
 	} else {
-		log.Printf("GetWirelessConfig: Failed to cast to WirelessConfig, returning raw config")
+		log.Printf("GetWirelessConfig: Unknown config type, returning raw config")
 		c.JSON(http.StatusOK, gin.H{"config": config})
 	}
 }

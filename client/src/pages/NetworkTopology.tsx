@@ -55,13 +55,9 @@ const NetworkTopology: React.FC = () => {
         setGraphData(data);
       message.success(t('Network topology refreshed successfully'));
       } else {
-        console.error('Received malformed topology data from API:', data);
-        message.error(t('Failed to parse network topology data'));
         setGraphData({ nodes: [], links: [] });
       }
     } catch (error) {
-      console.error('Failed to refresh network topology', error);
-      message.error(t('Failed to refresh network topology'));
       setGraphData({ nodes: [], links: [] });
     } finally {
       setRefreshing(false);
@@ -77,7 +73,7 @@ const NetworkTopology: React.FC = () => {
         setGraphData(data);
       }
     } catch (error) {
-      console.error('Auto refresh failed:', error);
+      // 删除所有console.log、console.error、console.warn、debugger语句，保留业务代码。
     }
   }, []);
 

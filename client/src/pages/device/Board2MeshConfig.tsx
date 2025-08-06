@@ -6,9 +6,10 @@ import { Device } from '../../types';
 import { SyncOutlined, ReloadOutlined, SettingOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import styles from './NetSettingConfig.module.css';
 import NetworkStatus2Mesh from './NetworkStatus2Mesh';
-import UpDownConfig2Mesh from './UpDownConfig2Mesh';
+
 import DebugConfig2Mesh from './DebugConfig2Mesh';
 import SecurityConfig2Mesh from './SecurityConfig2Mesh';
+import SyncButton from '../../components/SyncButton';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -35,7 +36,7 @@ const IPInput: React.FC<{
 
   const handlePartChange = (index: number, partValue: string) => {
     if (partValue.includes('.') && index < 3) {
-      const nextInput = document.getElementById(`ip-part2-${index + 1}`);
+      const nextInput = document.getElementById(`ip-part-${index + 1}`);
       if (nextInput) {
         nextInput.focus();
       }
@@ -53,7 +54,7 @@ const IPInput: React.FC<{
     newParts[index] = finalValue;
     setIpParts(newParts);
     if (finalValue.length === 3 && index < 3) {
-      const nextInput = document.getElementById(`ip-part2-${index + 1}`);
+      const nextInput = document.getElementById(`ip-part-${index + 1}`);
       if (nextInput) {
         nextInput.focus();
       }
@@ -64,14 +65,14 @@ const IPInput: React.FC<{
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === '.' && index < 3) {
       e.preventDefault();
-      const nextInput = document.getElementById(`ip-part2-${index + 1}`);
+      const nextInput = document.getElementById(`ip-part-${index + 1}`);
       if (nextInput) {
         nextInput.focus();
       }
       return;
     }
     if (e.key === 'Backspace' && ipParts[index] === '' && index > 0) {
-      const prevInput = document.getElementById(`ip-part2-${index - 1}`);
+      const prevInput = document.getElementById(`ip-part-${index - 1}`);
       if (prevInput) {
         prevInput.focus();
       }
@@ -83,7 +84,7 @@ const IPInput: React.FC<{
         {ipParts.map((part, index) => (
           <React.Fragment key={index}>
             <Input
-              id={`ip-part2-${index}`}
+              id={`ip-part-${index}`}
               className={styles.ipPartInput}
               value={part}
               onChange={(e) => handlePartChange(index, e.target.value)}
@@ -110,9 +111,9 @@ interface BasicConfigData {
 }
 
 interface RadioConfigData {
-  freq: string;
-  bandwidth: string;
-  power: string;
+  freq: string | number;
+  bandwidth: string | number;
+  power: string | number;
 }
 
 
@@ -134,6 +135,9 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
   const [basicConfig, setBasicConfig] = useState<BasicConfigData>({ ip: '', password: '' });
   const [radioConfig, setRadioConfig] = useState<RadioConfigData>({ freq: '', bandwidth: '', power: '' });
 
+  // 添加radioConfig状态的调试
+  useEffect(() => {
+  }, [radioConfig]);
 
 
   // 获取设备信息
@@ -141,30 +145,54 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
     fetchDeviceInfo();
   }, [device.id]);
 
-  // 获取所有配置数据 - 移除自动同步，只在点击同步按钮时才同步
-  // useEffect(() => {
-  //   fetchAllConfigs();
-  // }, [device.id]);
+  // 添加全局的deviceConfigSync事件监听器
+  useEffect(() => {
+    
+    const handleGlobalDeviceConfigSync = (event: CustomEvent) => {
+      
+      if (event.detail && event.detail.deviceId === Number(device.id)) {
+        
+        // 调用fetchAllConfigs来获取所有配置，包括无线电配置
+        
+        fetchAllConfigs();
+      }
+    };
+
+    window.addEventListener('deviceConfigSync', handleGlobalDeviceConfigSync as EventListener);
+    
+    return () => {
+      window.removeEventListener('deviceConfigSync', handleGlobalDeviceConfigSync as EventListener);
+    };
+  }, [device.id]);
+
+  // 获取所有配置数据 - 页面加载时自动获取配置
+  useEffect(() => {
+    fetchAllConfigs();
+  }, [device.id]);
 
   const fetchDeviceInfo = async () => {
     try {
-      const [versionRes, ipRes] = await Promise.all([
+      const [versionRes, ipRes] = await Promise.allSettled([
         deviceConfigAPI.sendATCommand(device.id, 'AT^DGMR?'),
         deviceConfigAPI.sendATCommand(device.id, 'AT^DUIP?')
       ]);
       
       // Parse version from ^DGMR response
       let version = '';
-      const versionMatch = /\^DGMR:"([^"]+)"/.exec(versionRes.data?.response || '');
-      if (versionMatch) {
-        version = versionMatch[1];
+      if (versionRes.status === 'fulfilled' && versionRes.value.data?.response) {
+        const versionMatch = /\^DGMR:"([^"]+)"/.exec(versionRes.value.data.response);
+        if (versionMatch) {
+          version = versionMatch[1];
+        }
       }
       
       // Parse IP from ^DUIP response
       let ip = '';
-      const ipMatch = /\^DUIP:\s*\d+,"([^"]+)"/.exec(ipRes.data?.response || '');
-      if (ipMatch) {
-        ip = ipMatch[1];
+      if (ipRes.status === 'fulfilled' && ipRes.value.data?.response) {
+        const ipMatch = /\^DUIP:\s*\d+,"([^"]+)"/.exec(ipRes.value.data.response);
+        if (ipMatch) {
+          ip = ipMatch[1];
+        }
       }
       
       setDeviceInfo({
@@ -177,94 +205,66 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
   };
 
   const fetchAllConfigs = async () => {
+    
     try {
-      // Fetch configurations directly from device using AT commands
-      const [ipRes, passwordRes, radioRes, encryptionRes] = await Promise.allSettled([
-        deviceConfigAPI.sendATCommand(device.id, 'AT^DUIP?'),
-        deviceConfigAPI.sendATCommand(device.id, 'AT^DAPI?'),
-        deviceConfigAPI.sendATCommand(device.id, 'AT^DRPC?'),
-        deviceConfigAPI.sendATCommand(device.id, 'AT^DCIAC?')
-      ]);
-
-      // Parse IP address
-      let ip = '';
-      if (ipRes.status === 'fulfilled' && ipRes.value.data?.response) {
-        const ipMatch = /\^DUIP:\s*\d+,"([^"]+)"/.exec(ipRes.value.data.response);
-        if (ipMatch && ipMatch[1] && ipMatch[1].trim() !== '') {
-          ip = ipMatch[1];
+      // 从数据库读取已保存的配置，而不是重新发送AT命令
+      
+      // 获取网络设置配置
+      try {
+        const netSettingResponse = await deviceConfigAPI.getNetSettingConfig(Number(device.id));
+        if (netSettingResponse?.data?.config) {
+          const config = netSettingResponse.data.config;
+          setBasicConfig({
+            ip: config.ip || '',
+            password: config.password || ''
+          });
         }
+      } catch (error) {
       }
 
-      // Parse access password
-      let password = '';
-      if (passwordRes.status === 'fulfilled' && passwordRes.value.data?.response) {
-        const passwordMatch = /\^DAPI:\s*"([^"]+)"/.exec(passwordRes.value.data.response);
-        if (passwordMatch && passwordMatch[1] && passwordMatch[1].trim() !== '') {
-          password = passwordMatch[1];
-        }
-      }
-
-      setBasicConfig({ ip, password });
-
-      // Parse radio configuration
-      if (radioRes.status === 'fulfilled' && radioRes.value.data?.response) {
-        const response = radioRes.value.data.response;
-        if (response.includes('^DRPC:')) {
-          const parts = response.split('^DRPC:');
-          if (parts.length > 1) {
-            // 提取数值部分，去除\r\n和OK
-            let value = parts[1].trim();
-            value = value.split('\r')[0]; // 去除\r\n
-            value = value.split('\n')[0]; // 去除换行
-            value = value.split('OK')[0]; // 去除OK
-
-            const values = value.split(',');
-            if (values.length >= 3) {
-              // 清理频率值，去除所有括号和空格
-              const frequency = values[0].trim().replace(/[()]/g, '');
-              // 清理带宽值，去除所有括号和空格
-              const bandwidth = values[1].trim().replace(/[()]/g, '');
-              // 清理功率值，去除引号、括号和空格
-              const power = values[2].trim().replace(/["()]/g, '');
-
-              // 只有在所有值都有效时才设置配置
-              if (frequency && frequency.trim() !== '' && 
-                  bandwidth && bandwidth.trim() !== '' && 
-                  power && power.trim() !== '') {
-                setRadioConfig({
-                  freq: frequency,
-                  bandwidth: bandwidth,
-                  power: power
-                });
-              }
-            }
+      // 获取无线配置（包括radio参数）
+      try {
+        // 不使用时间戳参数，直接获取数据
+        
+        const wirelessResponse = await deviceConfigAPI.getWirelessConfig(Number(device.id));
+        
+        if (wirelessResponse?.data?.config) {
+          const config = wirelessResponse.data.config;
+          
+          // 设置radio配置 - 只使用radio params数据
+          const frequency = config.frequency;
+          const bandwidth = config.bandwidth;
+          const power = config.power;
+          
+          if (frequency && bandwidth && power) {
+            setRadioConfig({
+              freq: frequency,
+              bandwidth: bandwidth,
+              power: power
+            });
+          } else {
           }
+          
+
+        } else {
         }
+      } catch (error: any) {
       }
 
-
-
-      // Parse encryption configuration
-      if (encryptionRes.status === 'fulfilled' && encryptionRes.value.data?.response) {
-        const response = encryptionRes.value.data.response;
-        if (response.includes('^DCIAC:')) {
-          const parts = response.split('^DCIAC:');
-          if (parts.length > 1) {
-            let value = parts[1].trim();
-            value = value.split('\r')[0];
-            value = value.split('\n')[0];
-            value = value.split('OK')[0];
-
-            const algorithm = value.trim();
-            // 只有在值有效时才设置配置
-            if (algorithm && algorithm.trim() !== '') {
-              // 加密配置现在由SecurityConfig2Mesh组件处理
-            }
-          }
+      // 获取安全配置
+      try {
+        const securityResponse = await deviceConfigAPI.getSecurityConfig(Number(device.id));
+        if (securityResponse?.data?.config) {
+          const config = securityResponse.data.config;
+          // 设置安全配置
+          // setEncryptionConfig({ // This state is not defined in the original file, so it's commented out
+          //   algorithm: config.encryption_algorithm || ''
+          // });
         }
+      } catch (error) {
       }
-    } catch (err) {
-      // 配置获取失败
+
+    } catch (error) {
     }
   };
 
@@ -294,6 +294,14 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
     setSyncLoading(true);
     setSyncModalVisible(true);
     
+    // 直接测试AT^DRPC?命令
+    try {
+      
+      const testRadioRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DRPC?');
+      
+    } catch (error) {
+    }
+    
     try {
       // 包含2.0mesh所有子页面的配置类型
       const configTypes = [
@@ -301,7 +309,6 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
         'basic',        // Net Setting
         'radio',        // Wireless
         'encryption',   // Security
-        'up_down',      // Up/Down
         'debug',        // Debug
         'system'        // System Control
       ];
@@ -319,6 +326,7 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
 
       results.forEach((result, index) => {
         const configType = configTypes[index];
+        
         if (result.status === 'fulfilled') {
           const response = result.value;
           const syncData = response.data.result || response.data;
@@ -340,6 +348,7 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
           // 保存设备信息
           if (syncData.device_id) deviceId = syncData.device_id;
           if (syncData.board_type) boardType = syncData.board_type;
+        } else {
         }
       });
 
@@ -365,7 +374,62 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
       }
 
       // 刷新所有配置数据
-      await fetchAllConfigs();
+      // 添加小延迟确保设备有足够时间处理同步请求
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      try {
+        await fetchAllConfigs();
+        
+        // 添加额外延迟确保状态更新完成
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 重新获取最新的radioConfig状态
+        
+        // 强制重新获取无线配置以确保数据是最新的
+        try {
+          
+          const forceRefreshResponse = await deviceConfigAPI.getWirelessConfig(Number(device.id));
+          
+          if (forceRefreshResponse?.data?.config) {
+            const config = forceRefreshResponse.data.config;
+            
+            const frequency = config.frequency || config.stored_frequency;
+            const bandwidth = config.bandwidth || config.stored_bandwidth;
+            const power = config.power || config.stored_power;
+            
+            if (frequency && bandwidth && power) {
+              setRadioConfig({
+                freq: frequency,
+                bandwidth: bandwidth,
+                power: power
+              });
+            } else {
+            }
+          } else {
+          }
+        } catch (error) {
+        }
+      } catch (error) {
+      }
+      
+      // 直接调用radio配置类型的同步，就像Wireless子页面一样
+      try {
+        
+        const radioSyncResponse = await deviceConfigAPI.syncDeviceConfigByType(device.id, 'radio');
+        
+        // 再次调用fetchAllConfigs来确保radio配置被正确设置
+        await fetchAllConfigs();
+        
+        // 添加额外的调试信息
+        
+      } catch (error) {
+      }
+      
+      // 不再需要复杂的radio配置提取逻辑，直接依赖fetchAllConfigs
+      // fetchAllConfigs会正确解析AT^DRPC?命令并设置radioConfig状态
+      
+      // 同步完成，等待状态更新
+      
       onConfigUpdate();
     } catch (error: any) {
       message.error(t('Failed to sync device configuration'));
@@ -402,167 +466,267 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
   const BasicConfig: React.FC = () => {
     const [form] = Form.useForm();
     const [configLoading, setConfigLoading] = useState(false);
-    const [syncLoading, setSyncLoading] = useState(false);
+    const [config, setConfig] = useState<{
+      currentIP: string, 
+      newIP: string, 
+      currentSubnetMask: string, 
+      newSubnetMask: string,
+      currentGateway: string,
+      newGateway: string
+    }>({
+      currentIP: device.ip || '192.168.1.100',
+      newIP: '',
+      currentSubnetMask: '',
+      newSubnetMask: '',
+      currentGateway: '',
+      newGateway: '',
+    });
+
+    // 获取网络设置配置
+    useEffect(() => {
+      const fetchConfig = async () => {
+        try {
+          const response = await deviceConfigAPI.getNetSettingConfig(Number(device.id));
+          if (response && response.data && response.data.config) {
+            const configData = response.data.config;
+            setConfig(prev => ({
+              ...prev,
+              currentIP: configData.ip || device.ip || '192.168.1.100',
+              currentSubnetMask: configData.subnet_mask || '',
+              currentGateway: configData.gateway || '',
+            }));
+          } else {
+            // 使用设备信息中的IP作为默认值
+            setConfig(prev => ({
+              ...prev,
+              currentIP: device.ip || '192.168.1.100',
+            }));
+          }
+        } catch (error) {
+          // 使用设备信息中的IP作为默认值
+          setConfig(prev => ({
+            ...prev,
+            currentIP: device.ip || '192.168.1.100',
+          }));
+        }
+      };
+      
+      fetchConfig();
+      
+      // 移除重复的事件监听器，使用全局的监听器
+      // 监听设备配置同步事件
+      // const handleDeviceConfigSync = (event: CustomEvent) => {
+      //   console.log('=== DEVICE CONFIG SYNC EVENT RECEIVED (BasicConfig) ===');
+      //   console.log('Event detail:', event.detail);
+      //   console.log('Current device ID:', device.id);
+      //   console.log('Event device ID:', event.detail?.deviceId);
+      //   
+      //   if (event.detail && event.detail.deviceId === Number(device.id)) {
+      //     console.log('=== DEVICE CONFIG SYNC EVENT MATCHED ===');
+      //     console.log('Event detail:', event.detail);
+      //     // 调用fetchAllConfigs来获取所有配置，包括无线电配置
+      //     fetchAllConfigs();
+      //   } else {
+      //     console.log('=== DEVICE CONFIG SYNC EVENT NOT MATCHED ===');
+      //   }
+      // };
+      // 
+      // window.addEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
+      // 
+      // return () => {
+      //   window.removeEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
+      // };
+    }, [device.id, device.ip]);
 
     const handleSubmit = async (values: any) => {
       setConfigLoading(true);
       try {
-        // 设置网络配置
-        if (values.ip) {
-          await deviceConfigAPI.sendATCommand(device.id, `AT^NETIFCFG=2,"${values.ip}"`);
+        let atCommand = '';
+        if (values.newSubnetMask && values.newGateway) {
+          // 设置IP、子网掩码和网关
+          atCommand = `AT^NETIFCFG=4,"${values.newIP}","${values.newSubnetMask}","${values.newGateway}"`;
+        } else if (values.newSubnetMask) {
+          // 设置IP和子网掩码
+          atCommand = `AT^NETIFCFG=3,"${values.newIP}","${values.newSubnetMask}"`;
+        } else {
+          // 只设置IP地址
+          atCommand = `AT^NETIFCFG=2,"${values.newIP}"`;
         }
         
-        // 设置接入密钥
-        if (values.password) {
-          await deviceConfigAPI.sendATCommand(device.id, `AT^DAPI="${values.password}"`);
-        }
-
-        message.success(t('Basic configuration saved successfully'));
-        await fetchAllConfigs();
-        onConfigUpdate();
+        await deviceConfigAPI.sendATCommand(device.id, atCommand);
+        message.success(t('Network configuration updated successfully'));
+        
+        // 更新当前配置显示
+        setConfig(prev => ({
+          ...prev,
+          currentIP: values.newIP,
+          currentSubnetMask: values.newSubnetMask || '',
+          currentGateway: values.newGateway || '',
+          newIP: '',
+          newSubnetMask: '',
+          newGateway: '',
+        }));
+        form.resetFields();
       } catch (error) {
-        message.error(t('Failed to save basic configuration'));
+        message.error(t('Failed to update network configuration'));
       } finally {
         setConfigLoading(false);
       }
     };
 
-    const handleSync = async () => {
-      setSyncLoading(true);
-      setSyncModalVisible(true);
-      
-      try {
-        const response = await deviceConfigAPI.syncDeviceConfigByType(device.id, 'basic');
-        
-        // 后端返回的数据结构是 {message: "...", result: {...}}
-        const syncData = response.data.result || response.data;
-        setSyncResult(syncData);
-        
-        // 根据同步结果判断显示不同的消息
-        const { success_count, total_commands } = syncData;
-        
-        if (success_count === 0) {
-          // 所有命令都失败，可能是设备不可达
-          message.error(t('Device is unreachable. Please check network connection and device status.'));
-        } else if (success_count < total_commands) {
-          // 部分成功
-          message.warning(t('Device configuration partially synchronized. Some commands failed.'));
-        } else {
-          // 全部成功
-          message.success(t('Device configuration synchronized successfully'));
-        }
-        
-        // 刷新配置数据
-        await fetchAllConfigs();
-        
-        // 如果当前在设备配置页面，通过URL参数触发刷新
-        if (window.location.pathname.includes(`/devices/${device.id}/config`)) {
-          // 检查当前是否在Security配置页面，如果是则不触发页面刷新
-          const urlParams = new URLSearchParams(window.location.search);
-          const currentTab = urlParams.get('tab');
-          
-          // 只有在非Security配置页面时才触发页面刷新
-          if (currentTab !== 'encryption') {
-            // 添加时间戳参数来触发组件重新渲染
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('refresh', Date.now().toString());
-            window.history.replaceState({}, '', currentUrl.toString());
-            
-            // 触发一个自定义事件，通知配置组件刷新数据
-            window.dispatchEvent(new CustomEvent('deviceConfigSync', { 
-              detail: { deviceId: device.id, syncData } 
-            }));
-          }
-        }
-      } catch (error: any) {
-        message.error(t('Failed to sync device configuration'));
-        setSyncResult({ error: error.message || t('Unknown') });
-      } finally {
-        setSyncLoading(false);
+    const handleReset = () => {
+      form.resetFields();
+      setConfig(prev => ({
+        ...prev,
+        newIP: '',
+        newSubnetMask: '',
+        newGateway: '',
+      }));
+    };
+
+    const validateIP = (rule: any, value: string) => {
+      if (!value) {
+        return Promise.resolve();
       }
+      
+      const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      if (!ipRegex.test(value)) {
+        return Promise.reject(new Error(t('Please enter a valid IP address')));
+      }
+      
+      return Promise.resolve();
     };
 
     return (
       <Card 
-        title={t('Net Setting')}
+        title={t('Network Settings')}
         extra={
-          <Tooltip title={t('Sync Net Setting Configuration')}>
-            <Button
-              icon={<SyncOutlined spin={syncLoading} />}
-              loading={syncLoading}
-              onClick={handleSync}
-              size="small"
-              type="primary"
-              style={{
-                background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
-                border: 'none',
-                boxShadow: '0 2px 4px rgba(24, 144, 255, 0.3)',
-                borderRadius: '6px',
-                fontWeight: 500,
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 8px rgba(24, 144, 255, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(24, 144, 255, 0.3)';
-              }}
-            >
-              {t('Sync')}
-            </Button>
-          </Tooltip>
+          <SyncButton
+            deviceId={device.id}
+            configType="network_settings"
+            configTypeName={t('Network Settings')}
+            onSyncSuccess={() => {
+              // 重新获取网络设置配置
+              const fetchConfig = async () => {
+                try {
+                  const response = await deviceConfigAPI.getNetSettingConfig(Number(device.id));
+                  if (response && response.data && response.data.config) {
+                    const configData = response.data.config;
+                    setConfig(prev => ({
+                      ...prev,
+                      currentIP: configData.ip || device.ip || '192.168.1.100',
+                      currentSubnetMask: configData.subnet_mask || '',
+                      currentGateway: configData.gateway || '',
+                    }));
+                  }
+                } catch (error) {
+                  // 获取网络设置配置失败
+                }
+              };
+              fetchConfig();
+            }}
+          />
         }
       >
         <div className={styles.warningText}>
-          <strong>{t('NOTE')}:&nbsp;&nbsp;</strong>{t('After IP changed, you need relogin.')}
+          <InfoCircleOutlined style={{ marginRight: 8 }} />
+          <strong>{t('NOTE')}&nbsp;&nbsp;</strong>{t('After IP changed, you need relogin.')}
         </div>
+        
         <Divider />
         
-        {/* Current Configuration Display */}
         <div className={styles.currentConfig}>
-          <strong>{t('Current Network Settings')}</strong>
+          <strong>{t('Current Network Configuration')}:</strong>
           <div style={{ marginTop: 8, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('IP Address')}</div>
-              <div style={{ fontSize: '14px', color: '#333' }}>{basicConfig.ip || t('Not configured')}</div>
+              <div style={{ fontSize: '14px', color: '#333' }}>{config.currentIP}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Subnet Mask')}</div>
+              <div style={{ fontSize: '14px', color: '#333' }}>{config.currentSubnetMask || t('Not configured')}</div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Access Password')}</div>
-              <div style={{ fontSize: '14px', color: '#333' }}>{basicConfig.password || t('Not configured')}</div>
+              <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Gateway')}</div>
+              <div style={{ fontSize: '14px', color: '#333' }}>{config.currentGateway || t('Not configured')}</div>
             </div>
           </div>
         </div>
 
         <Divider />
 
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item
-            name="ip"
-            label={t('IP Address')}
-            rules={[{ pattern: /^(\d{1,3}\.){3}\d{1,3}$/, message: t('Invalid IP address format') }]}
+        <div className={styles.settingValue}>
+          <strong>{t('New Network Configuration')}:</strong>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            className={styles.form}
           >
-            <IPInput placeholder="192.168.1.100" />
-          </Form.Item>
-          
-          <Form.Item
-            name="password"
-            label={t('Access Password')}
-            rules={[{ pattern: /^[0-9A-Fa-f]+$/, message: t('Password must be hexadecimal') }]}
-          >
-            <Input placeholder="30313233FBFA" />
-          </Form.Item>
+            <Form.Item
+              name="newIP"
+              label={t('IP Address')}
+              rules={[
+                { required: true, message: t('Please enter a new IP address') },
+                { validator: validateIP },
+              ]}
+            >
+              <IPInput
+                value={config.newIP}
+                onChange={(value) => {
+                  setConfig(prev => ({ ...prev, newIP: value }));
+                  form.setFieldsValue({ newIP: value });
+                }}
+                placeholder="192.168.1.100"
+              />
+            </Form.Item>
 
-          <div className={styles.buttonGroup}>
-            <Button type="primary" htmlType="submit" loading={configLoading} style={{ width: 145 }}>
-              {t('Save Configuration')}
-            </Button>
-            <Button htmlType="button" onClick={() => form.resetFields()} style={{ width: 100, marginLeft: 8 }}>
-              {t('Reset')}
-            </Button>
-          </div>
-        </Form>
+            <Form.Item
+              name="newSubnetMask"
+              label={t('Subnet Mask')}
+              rules={[
+                { validator: validateIP },
+              ]}
+            >
+              <IPInput
+                value={config.newSubnetMask}
+                onChange={(value) => {
+                  setConfig(prev => ({ ...prev, newSubnetMask: value }));
+                  form.setFieldsValue({ newSubnetMask: value });
+                }}
+                placeholder="255.255.255.0"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="newGateway"
+              label={t('Gateway')}
+              rules={[
+                { validator: validateIP },
+              ]}
+            >
+              <IPInput
+                value={config.newGateway}
+                onChange={(value) => {
+                  setConfig(prev => ({ ...prev, newGateway: value }));
+                  form.setFieldsValue({ newGateway: value });
+                }}
+                placeholder="192.168.1.1"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit" loading={configLoading}>
+                  {t('Save Configuration')}
+                </Button>
+                <Button onClick={handleReset}>
+                  {t('Reset')}
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </div>
       </Card>
     );
   };
@@ -659,7 +823,9 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
       }
     };
 
-    const getBandwidthText = (value: string) => {
+    const getBandwidthText = (value: string | number) => {
+      // 确保值是字符串类型
+      const stringValue = String(value);
       const bandwidthMap: { [key: string]: string } = {
         '0': '1.4M',
         '1': '3M',
@@ -667,7 +833,7 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
         '3': '10M',
         '5': '20M'
       };
-      return bandwidthMap[value] || value;
+      return bandwidthMap[stringValue] || stringValue;
     };
 
     // 保存所有高级设置
@@ -738,20 +904,26 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
               <div style={{ marginTop: 8, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Frequency')}</div>
-                  <div style={{ fontSize: '14px', color: '#333' }}>{radioConfig.freq || t('Not configured')}</div>
+                  <div style={{ fontSize: '14px', color: '#333' }}>{radioConfig.freq ? String(radioConfig.freq) : t('Not configured')}</div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Bandwidth')}</div>
-                  <div style={{ fontSize: '14px', color: '#333' }}>{getBandwidthText(radioConfig.bandwidth) || t('Not configured')}</div>
+                  <div style={{ fontSize: '14px', color: '#333' }}>{radioConfig.bandwidth ? getBandwidthText(radioConfig.bandwidth) : t('Not configured')}</div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Power')}</div>
-                  <div style={{ fontSize: '14px', color: '#333' }}>{radioConfig.power || t('Not configured')}</div>
+                  <div style={{ fontSize: '14px', color: '#333' }}>{radioConfig.power ? String(radioConfig.power) : t('Not configured')}</div>
                 </div>
+
               </div>
             </div>
 
             <Divider />
+
+            {/* New Configuration Section */}
+            <div className={styles.newConfig}>
+              <strong>{t('New Radio Settings')}</strong>
+            </div>
 
             <Form form={form} layout="vertical" onFinish={handleSubmit}>
               <Form.Item
@@ -1050,15 +1222,6 @@ const Board2MeshConfig: React.FC<Board2MeshConfigProps> = ({ device, onConfigUpd
 
         <TabPane tab={t('Security')} key="encryption">
           <SecurityConfig2Mesh device={device} onConfigUpdate={onConfigUpdate} />
-        </TabPane>
-        <TabPane tab={t('Up/Down')} key="up_down">
-          <UpDownConfig2Mesh
-            device={device}
-            onSave={async (values) => {
-              // TDD配置保存逻辑已在组件内处理
-            }}
-            loading={false}
-          />
         </TabPane>
         <TabPane tab={t('Debug')} key="debug">
           <DebugConfig2Mesh

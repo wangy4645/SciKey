@@ -15,8 +15,11 @@ export const deviceConfigAPI = {
     api.put(`${API_BASE_URL}/devices/${deviceId}/configs/security`, config),
 
   // Wireless Configuration
-  getWirelessConfig: (deviceId: number) =>
-    api.get(`${API_BASE_URL}/devices/${deviceId}/configs/wireless`),
+  getWirelessConfig: (deviceId: number, timestamp?: number) => {
+    const url = `${API_BASE_URL}/devices/${deviceId}/configs/wireless`;
+    const params = timestamp ? `?t=${timestamp}` : '';
+    return api.get(url + params);
+  },
   updateWirelessConfig: (deviceId: number, config: any) =>
     api.put(`${API_BASE_URL}/devices/${deviceId}/configs/wireless`, config),
   setFrequencyBand: (deviceId: number, bands: string[]) =>
@@ -27,6 +30,12 @@ export const deviceConfigAPI = {
     api.post(`${API_BASE_URL}/devices/${deviceId}/wireless/building-chain`, { frequencyPoint }),
   setFrequencyHopping: (deviceId: number, enabled: boolean) =>
     api.post(`${API_BASE_URL}/devices/${deviceId}/wireless/frequency-hopping`, { enabled }),
+
+  // Transmit Power Configuration
+  getTransmitPowerConfig: (deviceId: number) =>
+    api.get(`${API_BASE_URL}/devices/${deviceId}/configs/transmit_power`),
+  updateTransmitPowerConfig: (deviceId: number, config: any) =>
+    api.put(`${API_BASE_URL}/devices/${deviceId}/configs/transmit_power`, config),
 
   // Network Settings Configuration
   getNetSettingConfig: (deviceId: number) =>
@@ -63,6 +72,10 @@ export const deviceConfigAPI = {
   // 发送 AT 指令
   sendATCommand: (deviceId: number, command: string) =>
     api.post(`${API_BASE_URL}/devices/${deviceId}/at`, { command }),
+
+  // 根据命令名称发送 AT 指令（支持参数）
+  sendATCommandByName: (deviceId: number, commandName: string, params?: any) =>
+    api.post(`${API_BASE_URL}/devices/${deviceId}/at/command`, { commandName, params }),
 
   // 同步设备配置
   syncDeviceConfig: (deviceId: number) =>

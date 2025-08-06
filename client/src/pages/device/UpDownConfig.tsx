@@ -99,20 +99,20 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
           ...prev,
           currentSetting: values.setting,
         }));
-        message.success(t('TDD configuration saved successfully'));
+        message.success(t('TimeSlot configuration saved successfully'));
       } else {
-        message.error(t('Failed to save TDD configuration: Invalid response'));
+                  message.error(t('Failed to save TimeSlot configuration: Invalid response'));
       }
     } catch (error: any) {
       if (error.response) {
         // 服务器响应了错误状态码
-        message.error(t(`Failed to save TDD configuration: ${error.response.data?.error || error.response.statusText}`));
+        message.error(t(`Failed to save TimeSlot configuration: ${error.response.data?.error || error.response.statusText}`));
       } else if (error.request) {
         // 请求已发出但没有收到响应
-        message.error(t('Failed to save TDD configuration: No response from server'));
+                  message.error(t('Failed to save TimeSlot configuration: No response from server'));
       } else {
         // 其他错误
-        message.error(t(`Failed to save TDD configuration: ${error.message || 'Unknown error'}`));
+                  message.error(t(`Failed to save TimeSlot configuration: ${error.message || 'Unknown error'}`));
       }
     }
   };
@@ -123,19 +123,19 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
       setting: '',
     }));
     form.resetFields();
-    message.info(t('TDD configuration reset'));
+            message.info(t('TimeSlot configuration reset'));
   };
 
   return (
     <div className={styles.container}>
       <Card 
-        title={t('TDD Configuration')} 
+        title={t('TimeSlot Configuration')} 
         className={styles.card}
         extra={
           <SyncButton
             deviceId={device.id}
             configType="up_down"
-            configTypeName={t('TDD Configuration')}
+            configTypeName={t('TimeSlot Configuration')}
             onSyncSuccess={() => {
               // 重新获取TDD配置
               const fetchConfig = async () => {
@@ -181,7 +181,7 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
         <Divider />
 
         <div className={styles.settingValue}>
-          <strong>{t('TDD Configuration')}:</strong>
+                      <strong>{t('TimeSlot Configuration')}:</strong>
           <Form
             form={form}
             layout="vertical"
@@ -197,7 +197,7 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
                   setConfig(prev => ({ ...prev, setting: value }));
                   form.setFieldsValue({ setting: value });
                 }}
-                placeholder={t('Select TDD configuration')}
+                placeholder={t('Select TimeSlot configuration')}
                 style={{ width: '100%' }}
               >
                 {tddOptions.map(option => (
@@ -211,7 +211,7 @@ const UpDownConfig: React.FC<UpDownConfigProps> = ({
             <Form.Item>
               <Space>
                 <Button type="primary" onClick={handleSubmit} loading={loading}>
-                  {t('Save Configuration')}
+                  {t('Save')}
                 </Button>
                 <Button onClick={handleReset}>
                   {t('Reset')}

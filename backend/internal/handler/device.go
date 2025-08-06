@@ -331,7 +331,7 @@ func (h *DeviceHandler) SendATCommandByName(c *gin.Context) {
 	}
 
 	var req struct {
-		CommandName string                 `json:"command_name" binding:"required"`
+		CommandName string                 `json:"commandName" binding:"required"`
 		Params      map[string]interface{} `json:"params,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -58,24 +58,47 @@ const SecurityConfig2Mesh: React.FC<SecurityConfig2MeshProps> = ({ device, onCon
   const [keyLoading, setKeyLoading] = useState(false);
   const [keyError, setKeyError] = useState('');
   const [currentKey, setCurrentKey] = useState('');
+  const [activeTab, setActiveTab] = useState('encryption');
 
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         setLoading(true);
-        const algRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DCIAC?');
+        
+        // 优先从数据库获取安全配置
+        const configRes = await deviceConfigAPI.getSecurityConfig(device.id);
         let algorithm = EncryptionAlgorithm.NONE;
-        if (algRes.data?.response) {
-          const match = algRes.data.response.match(/\^DCIAC:\s*(\d+)/);
-          if (match && match[1]) {
-            algorithm = Number(match[1]) as EncryptionAlgorithm;
+        let currentKeyValue = '';
+        
+        if (configRes.data && configRes.data.config && Object.keys(configRes.data.config).length > 0) {
+          // 从数据库获取数据
+          algorithm = configRes.data.config.encryption_algorithm || EncryptionAlgorithm.NONE;
+          currentKeyValue = configRes.data.config.encryption_key || '';
+        } else {
+          // 如果数据库没有数据，则从设备获取
+          const algRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DCIAC?');
+          if (algRes.data?.response) {
+            const match = algRes.data.response.match(/\^DCIAC:\s*(\d+)/);
+            if (match && match[1]) {
+              algorithm = Number(match[1]) as EncryptionAlgorithm;
+            }
+          }
+          
+          const keyRes = await deviceConfigAPI.sendATCommandByName(device.id, 'get_access_password');
+          if (keyRes.data?.response) {
+            const match = keyRes.data.response.match(/\^DAPI:\s*"([^"]*)"/);
+            if (match && match[1]) {
+              currentKeyValue = match[1];
+            }
           }
         }
         
         setConfig(prev => ({
           ...prev,
           encryption_algorithm: algorithm,
+          encryption_key: currentKeyValue,
         }));
+        setCurrentKey(currentKeyValue);
         form.setFieldsValue({
           encryption_algorithm: algorithm,
         });
@@ -122,9 +145,24 @@ const SecurityConfig2Mesh: React.FC<SecurityConfig2MeshProps> = ({ device, onCon
     if (err) return;
     setKeyLoading(true);
     try {
-      await deviceConfigAPI.sendATCommand(device.id, `AT^DAPI=${key}`);
+      await deviceConfigAPI.sendATCommandByName(device.id, 'set_encryption_key', { key: key });
       message.success(t('Key updated successfully'));
-      setCurrentKey(key);
+      
+      // 重新获取最新的密钥值
+      const keyRes = await deviceConfigAPI.sendATCommandByName(device.id, 'get_access_password');
+      let currentKeyValue = '';
+      if (keyRes.data?.response) {
+        const match = keyRes.data.response.match(/\^DAPI:\s*"([^"]*)"/);
+        if (match && match[1]) {
+          currentKeyValue = match[1];
+        }
+      }
+      
+      setCurrentKey(currentKeyValue);
+      setConfig(prev => ({
+        ...prev,
+        encryption_key: currentKeyValue,
+      }));
       setKey('');
     } catch (e) {
       message.error(t('Failed to update key'));
@@ -136,9 +174,24 @@ const SecurityConfig2Mesh: React.FC<SecurityConfig2MeshProps> = ({ device, onCon
   const handleKeyReset = async () => {
     setKeyLoading(true);
     try {
-      await deviceConfigAPI.sendATCommand(device.id, 'AT^DAPI=');
+      await deviceConfigAPI.sendATCommandByName(device.id, 'set_encryption_key', { key: '' });
       message.success(t('Key reset successfully. NOTE: After reset key, You need to restart the device.'));
-      setCurrentKey('');
+      
+      // 重新获取最新的密钥值
+      const keyRes = await deviceConfigAPI.sendATCommandByName(device.id, 'get_access_password');
+      let currentKeyValue = '';
+      if (keyRes.data?.response) {
+        const match = keyRes.data.response.match(/\^DAPI:\s*"([^"]*)"/);
+        if (match && match[1]) {
+          currentKeyValue = match[1];
+        }
+      }
+      
+      setCurrentKey(currentKeyValue);
+      setConfig(prev => ({
+        ...prev,
+        encryption_key: currentKeyValue,
+      }));
       setKey('');
     } catch (e) {
       message.error(t('Failed to reset key'));
@@ -152,14 +205,17 @@ const SecurityConfig2Mesh: React.FC<SecurityConfig2MeshProps> = ({ device, onCon
       <div className={styles.currentKeySection}>
         <div className={styles.currentKeyLabel}>
           <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
-          <span style={{ fontWeight: 600 }}>{t('Now Algorithm')}:</span>
+          <span style={{ fontWeight: 600 }}>{t('Current Algorithm')}:</span>
         </div>
         <div className={styles.currentKeyValue}>
           {ENCRYPTION_ALGORITHM_LABELS[Number(config.encryption_algorithm) ?? 0]}
         </div>
       </div>
       <Divider />
-      <Form.Item label={t('Encryption Algorithm')} name="encryption_algorithm">
+      <div className={styles.newConfig}>
+        <strong>{t('New Algorithm')}:</strong>
+      </div>
+      <Form.Item name="encryption_algorithm">
         <Select>
           <Select.Option value={0}>{t('None')}</Select.Option>
           <Select.Option value={1}>SNOW3G</Select.Option>
@@ -218,28 +274,26 @@ const SecurityConfig2Mesh: React.FC<SecurityConfig2MeshProps> = ({ device, onCon
         extra={
           <SyncButton
             deviceId={Number(device.id)}
-            configType="encryption"
+            configType="security"
             configTypeName={t('Security')}
             onSyncSuccess={() => {
               const fetchConfig = async () => {
                 try {
                   setLoading(true);
-                  const algRes = await deviceConfigAPI.sendATCommand(device.id, 'AT^DCIAC?');
-                  let algorithm = EncryptionAlgorithm.NONE;
-                  if (algRes.data?.response) {
-                    const match = algRes.data.response.match(/\^DCIAC:\s*(\d+)/);
-                    if (match && match[1]) {
-                      algorithm = Number(match[1]) as EncryptionAlgorithm;
-                    }
-                  }
                   
-                  setConfig(prev => ({
-                    ...prev,
-                    encryption_algorithm: algorithm,
-                  }));
-                  form.setFieldsValue({
-                    encryption_algorithm: algorithm,
-                  });
+                  // 从数据库重新获取完整的安全配置
+                  const configRes = await deviceConfigAPI.getSecurityConfig(device.id);
+                  if (configRes.data && configRes.data.config && Object.keys(configRes.data.config).length > 0) {
+                    setConfig(prev => ({
+                      ...prev,
+                      encryption_algorithm: configRes.data.config.encryption_algorithm || EncryptionAlgorithm.NONE,
+                      encryption_key: configRes.data.config.encryption_key || '',
+                    }));
+                    setCurrentKey(configRes.data.config.encryption_key || '');
+                    form.setFieldsValue({
+                      encryption_algorithm: configRes.data.config.encryption_algorithm || EncryptionAlgorithm.NONE,
+                    });
+                  }
                 } catch (error) {
                   // 安全配置获取失败
                 } finally {
@@ -257,7 +311,7 @@ const SecurityConfig2Mesh: React.FC<SecurityConfig2MeshProps> = ({ device, onCon
           initialValues={config}
           onFinish={handleSubmit}
         >
-          <Tabs defaultActiveKey="encryption">
+          <Tabs defaultActiveKey="encryption" onChange={setActiveTab}>
             <TabPane
               tab={
                 <span>
@@ -284,25 +338,35 @@ const SecurityConfig2Mesh: React.FC<SecurityConfig2MeshProps> = ({ device, onCon
           <Divider />
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                {t('Save Configuration')}
-              </Button>
-              <Button onClick={async () => {
-                form.resetFields();
-                form.setFieldsValue({ encryption_algorithm: 0 });
-                setConfig(prev => ({ ...prev, encryption_algorithm: 0 }));
-                setKey('');
-                setCurrentKey('');
-                form.setFieldsValue({ encryption_key: '' });
-                try {
-                  await deviceConfigAPI.sendATCommand(device.id, 'AT^DCIAC=0');
-                  message.success(t('Reset completed'));
-                } catch (error) {
-                  message.error(t('Reset completed but failed to send AT command'));
-                }
-              }}>
-                {t('Reset')}
-              </Button>
+              {activeTab === 'encryption' ? (
+                <>
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    {t('Save Configuration')}
+                  </Button>
+                  <Button onClick={async () => {
+                    form.resetFields();
+                    form.setFieldsValue({ encryption_algorithm: 0 });
+                    setConfig(prev => ({ ...prev, encryption_algorithm: 0 }));
+                    try {
+                      await deviceConfigAPI.sendATCommand(device.id, 'AT^DCIAC=0');
+                      message.success(t('Reset completed'));
+                    } catch (error) {
+                      message.error(t('Reset completed but failed to send AT command'));
+                    }
+                  }}>
+                    {t('Reset')}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="primary" onClick={handleKeySubmit} loading={keyLoading}>
+                    {t('Set Key')}
+                  </Button>
+                  <Button onClick={handleKeyReset} loading={keyLoading}>
+                    {t('Reset Key')}
+                  </Button>
+                </>
+              )}
             </Space>
           </Form.Item>
         </Form>

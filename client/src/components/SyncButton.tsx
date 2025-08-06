@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, message, Modal, Spin, Typography, Space, Tag } from 'antd';
+import { Button, message, Modal, Spin, Typography, Space, Tag, Divider } from 'antd';
 import { SyncOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { deviceConfigAPI } from '../services/deviceConfigAPI';
@@ -23,6 +23,7 @@ interface SyncResult {
   total_commands: number;
   success_count: number;
   config_data: Record<string, any>;
+  error?: string; // Added for new rendering logic
 }
 
 const SyncButton: React.FC<SyncButtonProps> = ({
@@ -89,220 +90,70 @@ const SyncButton: React.FC<SyncButtonProps> = ({
     setSyncResult(null);
   };
 
+  // 渲染同步结果（详细卡片式风格）
   const renderSyncResults = () => {
     if (!syncResult) return null;
-
-    const { sync_results, total_commands, success_count, config_data } = syncResult;
-
-    // 只显示有有效关键信息时的Key Configuration
-    const keyConfigEntries = Object.entries(config_data)
-      .filter(([key, value]) => {
-        // 隐藏无用的字段
-        const hiddenFields = [
-          'raw_response',           // 原始响应，对用户无意义
-          'tdd_config',            // 与current_setting重复
-          'stored_bandwidth',       // 与bandwidth重复
-          'stored_frequency',       // 与frequency重复  
-          'stored_power',          // 与power重复
-          'working_type',          // 与device_type重复
-          'access_state_enabled',  // 与access_state重复
-          'master_ip',             // 与ip重复
-          'slave_ip',              // 通常为空
-          'status',                // 执行状态，对用户无意义
-          'message',               // 执行消息，对用户无意义
-          'note'                   // 说明信息，对用户无意义
-        ];
-        
-        return !hiddenFields.includes(key) && 
-               value !== '' && 
-               value !== null && 
-               value !== undefined;
-      })
-      // 按重要性排序
-      .sort(([keyA], [keyB]) => {
-        const priorityOrder = [
-          'ip', 'device_type', 'encryption_algorithm', 'current_setting',
-          'frequency_band', 'bandwidth', 'frequency', 'power',
-          'frequency_hopping', 'slave_max_tx_power', 'access_state',
-          'all_radio_param_report', 'radio_param_report', 'band_config'
-        ];
-        
-        const indexA = priorityOrder.indexOf(keyA);
-        const indexB = priorityOrder.indexOf(keyB);
-        
-        if (indexA === -1 && indexB === -1) return 0;
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-      });
-
     return (
       <div>
-        <div style={{ marginBottom: 16 }}>
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            <div>
-              <Text strong>{t('Summary')}:</Text>
-              <Space style={{ marginLeft: 8 }}>
-                <Tag color="blue">{t('Total Commands')}: {total_commands}</Tag>
-                <Tag color="green">{t('Success')}: {success_count}</Tag>
-                <Tag color="red">{t('Failed')}: {total_commands - success_count}</Tag>
-              </Space>
+        {syncResult.error ? (
+          <div style={{ color: '#ff4d4f', background: '#fff1f0', borderRadius: 8, padding: 16, marginBottom: 16, boxShadow: '0 2px 8px #ffccc7' }}>
+            <h3 style={{ color: '#cf1322', fontWeight: 700, marginBottom: 8 }}>❌ {t('Sync Failed')}</h3>
+            <p>{syncResult.error}</p>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
+              <div style={{ flex: 1, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e6f7ff', padding: 16 }}>
+                <h4 style={{ color: '#1890ff', fontWeight: 700 }}>{t('Sync Summary')}</h4>
+                <div style={{ margin: '8px 0' }}><strong>{t('Device ID')}:</strong> <span style={{ color: '#222' }}>{syncResult.device_id}</span></div>
+                <div style={{ margin: '8px 0' }}><strong>{t('Board Type')}:</strong> <span style={{ color: '#222' }}>{syncResult.board_type}</span></div>
+                <div style={{ margin: '8px 0' }}><strong>{t('Total Commands')}:</strong> <span style={{ color: '#222' }}>{syncResult.total_commands}</span></div>
+                <div style={{ margin: '8px 0' }}><strong>{t('Success Count')}:</strong> <span style={{ color: syncResult.success_count === syncResult.total_commands ? '#52c41a' : syncResult.success_count === 0 ? '#ff4d4f' : '#faad14', fontWeight: 700 }}>{syncResult.success_count}</span></div>
+              </div>
             </div>
-            <div>
-              <Text strong>{t('Success Rate')}:</Text>
-              <Text style={{ marginLeft: 8 }}>
-                {total_commands > 0 ? Math.round((success_count / total_commands) * 100) : 0}%
-              </Text>
-            </div>
-          </Space>
-        </div>
-
-        {/* 只显示有有效关键信息时的Key Configuration */}
-        {keyConfigEntries.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ fontSize: 15 }}>{t('Key Configuration')}:</Text>
-            <div style={{
-              maxHeight: 220,
-              overflowY: 'auto',
-              marginTop: 8,
-              padding: 12,
-              background: '#f8fafc',
-              borderRadius: 8,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              border: '1px solid #e6e6e6',
-            }}>
-              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
-                <tbody>
-                  {/* 优先显示 Network Role */}
-                  {(() => {
-                    const val = config_data.device_type;
-                    console.log('DEBUG Network Role:', val, typeof val);
-                    if (val !== undefined && val !== null && String(val).trim() !== '') {
-                      const strVal = String(val).trim();
-                      let role = 'Unknown';
-                      if (strVal === '0') role = 'Auto Mode';
-                      else if (strVal === '1') role = 'Master Node';
-                      else if (strVal === '2') role = 'Slave Node';
-                      else role = strVal;
-                      return (
-                        <tr>
-                          <td style={{
-                            fontWeight: 600,
-                            color: '#444',
-                            textAlign: 'right',
-                            padding: '4px 12px 4px 0',
-                            width: 160,
-                            whiteSpace: 'nowrap',
-                          }}>{t('Network Role')}:</td>
-                          <td style={{
-                            textAlign: 'left',
-                            padding: '4px 0',
-                            wordBreak: 'break-all',
-                          }}>{role}</td>
-                        </tr>
-                      );
-                    }
-                    return null;
-                  })()}
-                  {/* 其它配置项 */}
-                  {keyConfigEntries.map(([key, value]) => {
-                    if (key === 'device_type') return null; // 跳过已显示的 Network Role
-                    const isTddConfig = key === 'current_setting' && ['2D3U','3D2U','4D1U','1D4U'].includes(String(value).trim().toUpperCase());
-                    return isTddConfig ? (
-                      <tr key={key}>
-                        <td style={{
-                          fontWeight: 600,
-                          color: '#444',
-                          textAlign: 'right',
-                          padding: '4px 12px 4px 0',
-                          width: 160,
-                          whiteSpace: 'nowrap',
-                        }}>{t('TDD Config')}:</td>
-                        <td style={{
-                          textAlign: 'left',
-                          padding: '4px 0',
-                          wordBreak: 'break-all',
-                        }}>{String(value).trim()}</td>
-                      </tr>
-                    ) : (
-                      <tr key={key}>
-                        <td style={{
-                          fontWeight: 600,
-                          color: '#444',
-                          textAlign: 'right',
-                          padding: '4px 12px 4px 0',
-                          width: 160,
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {/* 字段名称友好化显示 */}
-                          {key === 'encryption_algorithm' ? t('Encryption') :
-                           key === 'frequency_band' ? t('Frequency Band') :
-                           key === 'frequency_hopping' ? t('Frequency Hopping') :
-                           key === 'slave_max_tx_power' ? t('Max TX Power') :
-                           key === 'access_state' ? t('Access State') :
-                           key === 'all_radio_param_report' ? t('Radio Report') :
-                           key === 'radio_param_report' ? t('Param Report') :
-                           key === 'band_config' ? t('Band Config') :
-                           key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}:
-                        </td>
-                        <td style={{
-                          textAlign: 'left',
-                          padding: '4px 0',
-                          wordBreak: 'break-all',
-                        }}>
-                          {key === 'encryption_algorithm' ? (
-                            <span>
-                              {value === '0' || value === 0 ? t('NONE')
-                                : value === '1' || value === 1 ? t('SNOW3G')
-                                : value === '2' || value === 2 ? t('AES')
-                                : value === '3' || value === 3 ? t('ZUC')
-                                : String(value)}
-                            </span>
-                          ) : (
-                            String(value)
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {syncResult.success_count > 0 && (
+              <>
+                <Divider style={{ margin: '16px 0' }} />
+                <h4 style={{ color: '#1890ff', fontWeight: 700 }}>{t('Sync Results')}</h4>
+                <div style={{ maxHeight: '320px', overflow: 'auto', display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                  {Object.entries(syncResult.sync_results || {})
+                    .filter(([command]) => command.startsWith('get_') && command !== 'get_radio_params_store' && command !== 'get_accessible_nodes')
+                    .map(([command, result]: [string, any]) => (
+                      <div key={command} style={{ flex: '1 1 320px', minWidth: 320, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #e6f7ff', padding: 16, marginBottom: 8, border: result.success ? '1px solid #b7eb8f' : '1px solid #ffa39e' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: 18, marginRight: 8 }}>{result.success ? '✅' : '❌'}</span>
+                          <span style={{ fontWeight: 600, color: result.success ? '#52c41a' : '#ff4d4f', fontSize: 16 }}>{command.replace('get_', '').replace(/_/g, ' ')}</span>
+                        </div>
+                        <div style={{ marginBottom: 4 }}><strong>{t('Status')}:</strong> <span style={{ color: result.success ? '#52c41a' : '#ff4d4f' }}>{result.success ? t('Success') : t('Failed')}</span></div>
+                        {result.error && (
+                          <div style={{ color: '#ff4d4f', marginBottom: 4 }}><strong>{t('Error')}:</strong> {result.error}</div>
+                        )}
+                        {result.config && (
+                          <div style={{ marginTop: 8 }}>
+                            <strong>{t('Config')}:</strong>
+                            <div style={{ fontSize: '13px', background: '#f5f5f5', padding: '8px', borderRadius: '4px', marginTop: '4px', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center' }}>
+                              {Object.entries(result.config)
+                                .filter(([key, value]) =>
+                                  !['raw_response', 'tdd_config', 'stored_bandwidth', 'stored_frequency', 'stored_power', 'working_type', 'access_state_enabled', 'master_ip', 'slave_ip', 'status', 'message', 'note'].includes(key) &&
+                                  value !== '' && value !== null && value !== undefined &&
+                                  !(Array.isArray(value) && value.length === 0)
+                                )
+                                .map(([key, value]) => (
+                                  <React.Fragment key={key}>
+                                    <span style={{ fontWeight: 600, color: '#444' }}>{key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}:</span>
+                                    <span>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+                                  </React.Fragment>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </>
+            )}
           </div>
         )}
-
-        {/* 简化的命令结果 */}
-        <div>
-          <Text strong>{t('Command Status')}:</Text>
-          <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 8 }}>
-            {Object.entries(sync_results).map(([commandName, result]: [string, any]) => (
-              <div key={commandName} style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                marginBottom: 4,
-                padding: 4,
-                backgroundColor: result.success ? '#f6ffed' : '#fff2f0',
-                borderRadius: 4
-              }}>
-                {result.success ? (
-                  <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
-                ) : (
-                  <CloseCircleOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
-                )}
-                <Text style={{ flex: 1, fontSize: 12 }}>
-                  {commandName === 'get_tdd_config' && result.config && result.config.current_setting ? (
-                    `Tdd config: ${String(result.config.current_setting).trim()}`
-                  ) : (
-                    commandName.replace('get_', '').replace(/_/g, ' ')
-                  )}
-                </Text>
-                <Tag color={result.success ? 'green' : 'red'}>
-                  {result.success ? t('Success') : t('Failed')}
-                </Tag>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     );
   };

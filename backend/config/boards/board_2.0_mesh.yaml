@@ -95,13 +95,13 @@ commands:
     description: "获取接入密钥"
     response_format: "text"
 
-  set_access_password:
+  set_encryption_key:
     at_command: "AT^DAPI=\"%s\""
-    description: "设置接入密钥"
+    description: "设置加密密钥"
     parameters:
-      - name: "password_id"
+      - name: "key"
         type: "string"
-        description: "密钥ID(十六进制格式, 最长64字符)"
+        description: "加密密钥(十六进制格式, 最长64字符)"
 
   # 无线参数存储
   get_radio_params_store:
@@ -184,21 +184,6 @@ commands:
         type: "int"
         values: [0, 1, 2, 3]
         description: "加密算法(0:无加密, 1:SNOW, 2:AES, 3:ZUC)"
-
-  # TDD配置
-  get_tdd_config:
-    at_command: "AT^DSTC?"
-    description: "获取TDD配置"
-    response_format: "text"
-
-  set_tdd_config:
-    at_command: "AT^DSTC=%d"
-    description: "设置TDD配置"
-    parameters:
-      - name: "config"
-        type: "int"
-        values: [0, 1, 2, 3]
-        description: "TDD配置(0:2D3U, 1:3D2U, 2:4D1U, 3:1D4U)"
 
   # 跳频控制
   get_frequency_hopping:

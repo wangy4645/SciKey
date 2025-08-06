@@ -24,7 +24,7 @@ const UpDownSettingConfig: React.FC<UpDownSettingConfigProps> = ({
 
   return (
     <div className={styles.container}>
-      <Card title="Up/Down Settings" className={styles.card}>
+      <Card title="TS Config" className={styles.card}>
         {/* Current Value Display - 卡片分行风格 */}
         <div className={styles.currentKeySection}>
           <div className={styles.currentKeyLabel}>Now Auto Restart:</div>

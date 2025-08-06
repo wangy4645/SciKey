@@ -44,6 +44,19 @@
 
 .card :global(.ant-btn) {
   margin-right: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 6px;
+}
+
+.card :global(.ant-btn-primary) {
+  background: #1677ff;
+  border-color: #1677ff;
+}
+
+.card :global(.ant-btn-primary:hover) {
+  background: #4096ff;
+  border-color: #4096ff;
 }
 
 .card :global(.ant-space) {

@@ -153,6 +153,23 @@
   margin-left: 8px;
 }
 
+/* 统一按钮样式 */
+.form :global(.ant-btn) {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 6px;
+}
+
+.form :global(.ant-btn-primary) {
+  background: #1677ff;
+  border-color: #1677ff;
+}
+
+.form :global(.ant-btn-primary:hover) {
+  background: #4096ff;
+  border-color: #4096ff;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .container {

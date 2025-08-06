@@ -86,6 +86,23 @@ const Devices: React.FC = () => {
     };
   }, [dispatch]);
 
+  // 添加设备配置同步事件监听器
+  useEffect(() => {
+    const handleDeviceConfigSync = (event: CustomEvent) => {
+      
+      // 如果同步成功，刷新设备列表以显示最新状态
+      if (event.detail && event.detail.syncData) {
+        dispatch(fetchDevices());
+      }
+    };
+
+    window.addEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
+    
+    return () => {
+      window.removeEventListener('deviceConfigSync', handleDeviceConfigSync as EventListener);
+    };
+  }, [dispatch]);
+
 
 
   const handleAdd = () => {
@@ -172,6 +189,13 @@ const Devices: React.FC = () => {
       // 刷新设备列表
       dispatch(fetchDevices());
       
+      // 总是触发设备配置同步事件，无论当前在哪个页面
+      
+      // 触发一个自定义事件，通知配置组件刷新数据
+      window.dispatchEvent(new CustomEvent('deviceConfigSync', { 
+        detail: { deviceId, syncData } 
+      }));
+      
       // 如果当前在设备配置页面，通过URL参数触发刷新
       if (window.location.pathname.includes(`/devices/${deviceId}/config`)) {
         // 检查当前是否在Security配置页面，如果是则不触发页面刷新
@@ -184,11 +208,6 @@ const Devices: React.FC = () => {
           const currentUrl = new URL(window.location.href);
           currentUrl.searchParams.set('refresh', Date.now().toString());
           window.history.replaceState({}, '', currentUrl.toString());
-          
-          // 触发一个自定义事件，通知配置组件刷新数据
-          window.dispatchEvent(new CustomEvent('deviceConfigSync', { 
-            detail: { deviceId, syncData } 
-          }));
         }
       }
     } catch (error: any) {
@@ -203,6 +222,8 @@ const Devices: React.FC = () => {
     setSyncModalVisible(false);
     setSyncResult(null);
   };
+
+
 
   const handleReboot = async (deviceId: number) => {
     try {
@@ -301,6 +322,7 @@ const Devices: React.FC = () => {
               }}
             />
           </Tooltip>
+
           <Tooltip title={t('Sync Config from Board')}>
             <Button
               type="text"
@@ -466,7 +488,8 @@ const Devices: React.FC = () => {
                                       !hiddenFields.includes(key) && 
                                       value !== '' && 
                                       value !== null && 
-                                      value !== undefined
+                                      value !== undefined &&
+                                      !(Array.isArray(value) && value.length === 0) // 保留空数组，因为frequency_band可能是空数组
                                     );
                                   if (validConfig.length === 0) {
                                     return <span style={{ color: '#999' }}>No valid configuration data</span>;

@@ -32,6 +32,10 @@ interface NetSettingConfigProps {
 interface IPConfig {
   currentIP: string;
   newIP: string;
+  currentSubnetMask: string;
+  newSubnetMask: string;
+  currentGateway: string;
+  newGateway: string;
 }
 
 // IP 输入组件
@@ -39,7 +43,8 @@ const IPInput: React.FC<{
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
-}> = ({ value = '', onChange, placeholder = '192.168.1.100' }) => {
+  idPrefix?: string; // 新增
+}> = ({ value = '', onChange, placeholder = '192.168.1.100', idPrefix = '' }) => {
   const [ipParts, setIpParts] = useState(['', '', '', '']);
 
   useEffect(() => {
@@ -57,7 +62,7 @@ const IPInput: React.FC<{
   const handlePartChange = (index: number, partValue: string) => {
     // 检查是否包含点号，如果包含则自动跳转到下一个输入框
     if (partValue.includes('.') && index < 3) {
-      const nextInput = document.getElementById(`ip-part-${index + 1}`);
+      const nextInput = document.getElementById(`${idPrefix}ip-part-${index + 1}`);
       if (nextInput) {
         nextInput.focus();
       }
@@ -82,7 +87,7 @@ const IPInput: React.FC<{
 
     // 自动跳转到下一个输入框
     if (finalValue.length === 3 && index < 3) {
-      const nextInput = document.getElementById(`ip-part-${index + 1}`);
+      const nextInput = document.getElementById(`${idPrefix}ip-part-${index + 1}`);
       if (nextInput) {
         nextInput.focus();
       }
@@ -97,7 +102,7 @@ const IPInput: React.FC<{
     // 处理点号键，跳转到下一个输入框
     if (e.key === '.' && index < 3) {
       e.preventDefault(); // 阻止点号被输入
-      const nextInput = document.getElementById(`ip-part-${index + 1}`);
+      const nextInput = document.getElementById(`${idPrefix}ip-part-${index + 1}`);
       if (nextInput) {
         nextInput.focus();
       }
@@ -106,7 +111,7 @@ const IPInput: React.FC<{
 
     // 处理退格键，当当前输入框为空时跳转到上一个输入框
     if (e.key === 'Backspace' && ipParts[index] === '' && index > 0) {
-      const prevInput = document.getElementById(`ip-part-${index - 1}`);
+      const prevInput = document.getElementById(`${idPrefix}ip-part-${index - 1}`);
       if (prevInput) {
         prevInput.focus();
       }
@@ -119,7 +124,7 @@ const IPInput: React.FC<{
         {ipParts.map((part, index) => (
           <React.Fragment key={index}>
             <Input
-              id={`ip-part-${index}`}
+              id={`${idPrefix}ip-part-${index}`}
               className={styles.ipPartInput}
               value={part}
               onChange={(e) => handlePartChange(index, e.target.value)}
@@ -145,6 +150,10 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
   const [config, setConfig] = useState<IPConfig>({
     currentIP: device.ip || '192.168.1.100',
     newIP: '',
+    currentSubnetMask: '',
+    newSubnetMask: '',
+    currentGateway: '',
+    newGateway: '',
   });
 
   // 获取网络设置配置
@@ -157,6 +166,8 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
           setConfig(prev => ({
             ...prev,
             currentIP: configData.ip || device.ip || '192.168.1.100',
+            currentSubnetMask: configData.subnet_mask || '',
+            currentGateway: configData.gateway || '',
           }));
         } else {
           // 使用设备信息中的IP作为默认值
@@ -192,17 +203,25 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
 
   const handleSubmit = async (values: any) => {
     try {
-      await onSave({ ip: values.newIP });
-      message.success(t('IP address updated successfully'));
-      // 更新当前 IP 显示
+      await onSave({ 
+        ip: values.newIP,
+        subnet_mask: values.newSubnetMask,
+        gateway: values.newGateway
+      });
+      message.success(t('Network configuration updated successfully'));
+      // 更新当前配置显示
       setConfig(prev => ({
         ...prev,
         currentIP: values.newIP,
+        currentSubnetMask: values.newSubnetMask || '',
+        currentGateway: values.newGateway || '',
         newIP: '',
+        newSubnetMask: '',
+        newGateway: '',
       }));
       form.resetFields();
     } catch (error) {
-      message.error(t('Failed to update IP address'));
+      message.error(t('Failed to update network configuration'));
     }
   };
 
@@ -211,6 +230,8 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
     setConfig(prev => ({
       ...prev,
       newIP: '',
+      newSubnetMask: '',
+      newGateway: '',
     }));
   };
 
@@ -247,6 +268,8 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
                     setConfig(prev => ({
                       ...prev,
                       currentIP: configData.ip || device.ip || '192.168.1.100',
+                      currentSubnetMask: configData.subnet_mask || '',
+                      currentGateway: configData.gateway || '',
                     }));
                   }
                 } catch (error) {
@@ -266,16 +289,27 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
         <Divider />
         
         <div className={styles.currentConfig}>
-          <strong>{t('Current IP')}:</strong>
+          <strong>{t('Current Network Configuration')}:</strong>
           <div style={{ marginTop: 8, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
-            {config.currentIP}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('IP Address')}</div>
+              <div style={{ fontSize: '14px', color: '#333' }}>{config.currentIP}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Subnet Mask')}</div>
+              <div style={{ fontSize: '14px', color: '#333' }}>{config.currentSubnetMask || t('Not configured')}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>{t('Gateway')}</div>
+              <div style={{ fontSize: '14px', color: '#333' }}>{config.currentGateway || t('Not configured')}</div>
+            </div>
           </div>
         </div>
 
         <Divider />
 
         <div className={styles.settingValue}>
-          <strong>{t('New IP Address')}:</strong>
+          <strong>{t('New Network Configuration')}:</strong>
           <Form
             form={form}
             layout="vertical"
@@ -284,12 +318,14 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
           >
             <Form.Item
               name="newIP"
+              label={t('IP Address')}
               rules={[
                 { required: true, message: t('Please enter a new IP address') },
                 { validator: validateIP },
               ]}
             >
               <IPInput
+                idPrefix="ip-"
                 value={config.newIP}
                 onChange={(value) => {
                   setConfig(prev => ({ ...prev, newIP: value }));
@@ -299,10 +335,46 @@ const NetSettingConfig: React.FC<NetSettingConfigProps> = ({
               />
             </Form.Item>
 
+            <Form.Item
+              name="newSubnetMask"
+              label={t('Subnet Mask')}
+              rules={[
+                { validator: validateIP },
+              ]}
+            >
+              <IPInput
+                idPrefix="mask-"
+                value={config.newSubnetMask}
+                onChange={(value) => {
+                  setConfig(prev => ({ ...prev, newSubnetMask: value }));
+                  form.setFieldsValue({ newSubnetMask: value });
+                }}
+                placeholder="255.255.255.0"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="newGateway"
+              label={t('Gateway')}
+              rules={[
+                { validator: validateIP },
+              ]}
+            >
+              <IPInput
+                idPrefix="gw-"
+                value={config.newGateway}
+                onChange={(value) => {
+                  setConfig(prev => ({ ...prev, newGateway: value }));
+                  form.setFieldsValue({ newGateway: value });
+                }}
+                placeholder="192.168.1.1"
+              />
+            </Form.Item>
+
             <Form.Item>
               <Space>
                 <Button type="primary" htmlType="submit" loading={loading}>
-                  {t('Save Configuration')}
+                  {t('Save')}
                 </Button>
                 <Button onClick={handleReset}>
                   {t('Reset')}

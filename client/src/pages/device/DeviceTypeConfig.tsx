@@ -224,7 +224,7 @@ const DeviceTypeConfig: React.FC<DeviceTypeConfigProps> = ({
             <Form.Item>
               <Space>
                 <Button type="primary" onClick={handleSubmit} loading={loading}>
-                  {t('Save Configuration')}
+                  {t('Save')}
                 </Button>
                 <Button onClick={handleReset}>
                   {t('Reset')}

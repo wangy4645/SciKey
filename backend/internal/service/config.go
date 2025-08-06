@@ -97,7 +97,9 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		// 优先从DeviceConfig表中读取同步的数据
 		var deviceConfigs []model.DeviceConfig
 		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		log.Printf("Security config query for device %d, category %s: found %d records, err: %v", deviceID, category, len(deviceConfigs), err)
 		if err == nil && len(deviceConfigs) > 0 {
+			log.Printf("Security DeviceConfig records: %+v", deviceConfigs)
 			// 将DeviceConfig数据转换为SecurityConfig格式
 			configMap := make(map[string]interface{})
 			for _, config := range deviceConfigs {
@@ -112,6 +114,7 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 					configMap[config.Key] = config.Value
 				}
 			}
+			log.Printf("Security mapped config: %+v", configMap)
 			return configMap, nil
 		}
 
@@ -140,7 +143,10 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		// 优先从DeviceConfig表中读取同步的数据
 		var deviceConfigs []model.DeviceConfig
 		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		log.Printf("GetDeviceConfigs: Querying device_configs for device %d, category %s", deviceID, category)
+		log.Printf("GetDeviceConfigs: Found %d records, err: %v", len(deviceConfigs), err)
 		if err == nil && len(deviceConfigs) > 0 {
+			log.Printf("GetDeviceConfigs: DeviceConfig records: %+v", deviceConfigs)
 			// 将DeviceConfig数据转换为WirelessConfig格式
 			configMap := make(map[string]interface{})
 			for _, config := range deviceConfigs {
@@ -174,6 +180,7 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 					configMap[config.Key] = config.Value
 				}
 			}
+			log.Printf("GetDeviceConfigs: Final configMap: %+v", configMap)
 			return configMap, nil // 只要有 device_configs 就直接返回
 		}
 		// 如果没有同步数据，再尝试从WirelessConfig表获取
@@ -199,31 +206,46 @@ func (s *ConfigService) GetDeviceConfigs(deviceID uint, category string) (interf
 		return wirelessConfig, nil
 
 	case ConfigCategoryNetSetting:
-		var netSettingConfig model.NetworkConfig
-		err := s.db.Where("device_id = ?", deviceID).First(&netSettingConfig).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// 尝试从DeviceConfig表中读取同步的数据
-				var deviceConfigs []model.DeviceConfig
-				err = s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
-				if err == nil && len(deviceConfigs) > 0 {
-					// 将DeviceConfig数据转换为NetworkConfig格式
-					configMap := make(map[string]interface{})
-					for _, config := range deviceConfigs {
-						configMap[config.Key] = config.Value
-					}
-					return configMap, nil
+		// 优先从DeviceConfig表中读取同步的数据
+		var deviceConfigs []model.DeviceConfig
+		err := s.db.Where("device_id = ? AND category = ?", deviceID, category).Find(&deviceConfigs).Error
+		log.Printf("DeviceConfig query for device %d, category %s: found %d records, err: %v", deviceID, category, len(deviceConfigs), err)
+		if err == nil && len(deviceConfigs) > 0 {
+			log.Printf("DeviceConfig records: %+v", deviceConfigs)
+			// 将DeviceConfig数据转换为前端期望的格式
+			configMap := make(map[string]interface{})
+			for _, config := range deviceConfigs {
+				switch config.Key {
+				case "interface_4_master_ip":
+					configMap["ip"] = config.Value
+				case "interface_4_subnet_mask":
+					configMap["subnet_mask"] = config.Value
+				case "interface_4_gateway":
+					configMap["gateway"] = config.Value
+				default:
+					configMap[config.Key] = config.Value
 				}
-				// 返回默认的Network配置，不创建数据库记录
-				return model.NetworkConfig{
-					DeviceID: deviceID,
-					IP:       "192.168.1.100",
-				}, nil
-			} else {
-				return nil, err
 			}
+			log.Printf("Mapped config: %+v", configMap)
+			return configMap, nil
 		}
-		return netSettingConfig, nil
+		// 否则查 NetworkConfig
+		var netSettingConfig model.NetworkConfig
+		err = s.db.Where("device_id = ?", deviceID).First(&netSettingConfig).Error
+		if err == nil {
+			// 将NetworkConfig转换为前端期望的格式
+			return map[string]interface{}{
+				"ip":          netSettingConfig.IP,
+				"subnet_mask": netSettingConfig.SubnetMask,
+				"gateway":     netSettingConfig.Gateway,
+			}, nil
+		}
+		// 返回默认
+		return map[string]interface{}{
+			"ip":          "192.168.1.100",
+			"subnet_mask": "",
+			"gateway":     "",
+		}, nil
 
 	case ConfigCategoryUpDown:
 		// 优先从DeviceConfig表中读取同步的数据
@@ -551,12 +573,25 @@ func (s *ConfigService) SaveDeviceConfigs(deviceID uint, category string, config
 			return fmt.Errorf("failed to save network setting configuration: %v", err)
 		}
 
-		// 发送 AT 命令设置 IP 地址
+		// 发送 AT 命令设置网络配置
 		if netSettingConfig.IP != "" {
-			atCommand := fmt.Sprintf("AT^NETIFCFG=2,\"%s\"", netSettingConfig.IP)
+			var atCommand string
+			if netSettingConfig.SubnetMask != "" && netSettingConfig.Gateway != "" {
+				// 设置IP、子网掩码和网关
+				atCommand = fmt.Sprintf("AT^NETIFCFG=4,\"%s\",\"%s\",\"%s\"",
+					netSettingConfig.IP, netSettingConfig.SubnetMask, netSettingConfig.Gateway)
+			} else if netSettingConfig.SubnetMask != "" {
+				// 设置IP和子网掩码
+				atCommand = fmt.Sprintf("AT^NETIFCFG=3,\"%s\",\"%s\"",
+					netSettingConfig.IP, netSettingConfig.SubnetMask)
+			} else {
+				// 只设置IP地址
+				atCommand = fmt.Sprintf("AT^NETIFCFG=2,\"%s\"", netSettingConfig.IP)
+			}
+
 			_, err := s.deviceComm.SendATCommand(deviceID, atCommand)
 			if err != nil {
-				log.Printf("Error sending AT command for IP setting: %v", err)
+				log.Printf("Error sending AT command for network setting: %v", err)
 				// 不返回错误，因为配置已经保存到数据库
 			}
 		}

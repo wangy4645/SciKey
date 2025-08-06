@@ -48,7 +48,7 @@ class DeviceStatusService {
           callback(result);
         }
       } catch (error) {
-        console.error('Auto status check failed:', error);
+        // console.error('Auto status check failed:', error);
       } finally {
         this.isChecking = false;
       }

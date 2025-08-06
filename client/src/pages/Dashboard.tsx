@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
             allAlerts.push(...alertsResponse.data);
           }
         } catch (error) {
-          console.error(`Failed to fetch alerts for device ${device.id}:`, error);
+          // console.error(`Failed to fetch alerts for device ${device.id}:`, error);
         }
       }
       

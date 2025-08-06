@@ -44,6 +44,9 @@ const Board1Config: React.FC<Board1ConfigProps> = ({ device, onConfigUpdate }) =
         case 'device_type':
           await deviceConfigAPI.updateDeviceTypeConfig(device.id, values);
           break;
+        case 'transmit_power':
+          await deviceConfigAPI.updateTransmitPowerConfig(device.id, values);
+          break;
         default:
           console.warn('Unknown config type:', configType);
       }
@@ -81,6 +84,7 @@ const Board1Config: React.FC<Board1ConfigProps> = ({ device, onConfigUpdate }) =
         <TabPane tab={t('Wireless')} key="wireless">
           <WirelessConfig
             device={device}
+            onSave={(values) => handleSave(values, 'transmit_power')}
           />
         </TabPane>
         <TabPane tab={t('Net Setting')} key="net_setting">
@@ -90,7 +94,7 @@ const Board1Config: React.FC<Board1ConfigProps> = ({ device, onConfigUpdate }) =
             loading={loading}
           />
         </TabPane>
-        <TabPane tab={t('Up/Down')} key="up_down">
+        <TabPane tab={t('TS Config')} key="up_down">
           <UpDownConfig
             device={device}
             onSave={(values) => handleSave(values, 'up_down')}

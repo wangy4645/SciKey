@@ -147,10 +147,13 @@ func (s *DeviceCommService) SendATCommandByName(deviceID uint, commandName strin
 	}
 
 	// 格式化AT命令
+	fmt.Printf("FormatATCommand: boardType=%s, commandName=%s, params=%+v\n", device.BoardType, commandName, params)
 	formattedCommand, err := s.boardConfigMgr.FormatATCommand(device.BoardType, commandName, params)
 	if err != nil {
+		fmt.Printf("FormatATCommand error: %v\n", err)
 		return "", fmt.Errorf("failed to format AT command: %v", err)
 	}
+	fmt.Printf("Formatted command: %s\n", formattedCommand)
 
 	// 构建AT指令请求
 	atRequest := ATCommandRequest{
@@ -241,16 +244,12 @@ func (s *DeviceCommService) sendHTTPRequestToDevice(device *model.Device, reques
 		return "", err
 	}
 	// 其它设备（2.0/6680等）走新协议
+	fmt.Printf("Device BoardType: %s\n", device.BoardType)
 	if strings.Contains(device.BoardType, "2.0") || strings.Contains(strings.ToLower(device.BoardType), "star") {
 		deviceURL := fmt.Sprintf("http://%s/atservice.fcgi", device.IP)
-		jsonBody := fmt.Sprintf(`{"action":"sendcmd","AT":"%s"}`, request.Command)
-
-		// 添加调试信息
-		fmt.Printf("=== 2.0 Device HTTP Request ===\n")
-		fmt.Printf("Device IP: %s\n", device.IP)
-		fmt.Printf("Device Board Type: %s\n", device.BoardType)
-		fmt.Printf("Request URL: %s\n", deviceURL)
-		fmt.Printf("Request Body: %s\n", jsonBody)
+		// 转义AT命令中的双引号，避免JSON解析错误
+		escapedCommand := strings.ReplaceAll(request.Command, `"`, `\"`)
+		jsonBody := fmt.Sprintf(`{"action":"sendcmd","AT":"%s"}`, escapedCommand)
 
 		req, err := http.NewRequest("POST", deviceURL, strings.NewReader(jsonBody))
 		if err != nil {
@@ -269,47 +268,30 @@ func (s *DeviceCommService) sendHTTPRequestToDevice(device *model.Device, reques
 			return "", err
 		}
 
-		// 添加调试信息
-		fmt.Printf("HTTP Response Status: %d\n", resp.StatusCode)
-		fmt.Printf("HTTP Response Body (raw): %q\n", string(b))
-		fmt.Printf("HTTP Response Body (hex): %x\n", b)
-
-		// 处理响应体：去除前后空白字符
 		responseBody := strings.TrimSpace(string(b))
-		fmt.Printf("HTTP Response Body (trimmed): %q\n", responseBody)
 
-		// 如果是带引号的JSON字符串，需要先去掉外层引号
 		if len(responseBody) >= 2 && responseBody[0] == '"' && responseBody[len(responseBody)-1] == '"' {
 			// 去掉外层引号
 			responseBody = responseBody[1 : len(responseBody)-1]
 			// 处理转义字符
 			responseBody = strings.ReplaceAll(responseBody, `\"`, `"`)
-			fmt.Printf("Unquoted response body: %q\n", responseBody)
 		}
 
-		// 再次去除空白字符
 		responseBody = strings.TrimSpace(responseBody)
-		fmt.Printf("Final response body for JSON parsing: %q\n", responseBody)
 
-		// 手动解析响应体，因为设备的msg字段不是有效的JSON字符串
 		var retcode int
 		var msgContent string
 
-		// 尝试使用正则表达式提取retcode和msg内容
 		retcodeMatch := regexp.MustCompile(`"retcode":\s*(\d+)`).FindStringSubmatch(responseBody)
 		if len(retcodeMatch) > 1 {
 			retcode, _ = strconv.Atoi(retcodeMatch[1])
 		}
 
-		// 提取msg字段的内容 - 更精确的匹配模式
-		// 匹配 "msg": 后面的内容，直到遇到 } 或 ," 或字符串结束
 		msgMatch := regexp.MustCompile(`"msg":\s*([^}]*?)(?:\s*,\s*"[^"]+"\s*:|})`).FindStringSubmatch(responseBody)
 		if len(msgMatch) > 1 {
 			msgContent = strings.TrimSpace(msgMatch[1])
-			// 如果msg内容以换行符开始，去掉开头的换行符
 			msgContent = strings.TrimPrefix(msgContent, "\r\n")
 			msgContent = strings.TrimPrefix(msgContent, "\n")
-			// 去掉末尾的换行符
 			msgContent = strings.TrimSuffix(msgContent, "\r\n")
 			msgContent = strings.TrimSuffix(msgContent, "\n")
 		}
@@ -317,12 +299,10 @@ func (s *DeviceCommService) sendHTTPRequestToDevice(device *model.Device, reques
 		fmt.Printf("Manually parsed retcode: %d\n", retcode)
 		fmt.Printf("Manually parsed msg content: %q\n", msgContent)
 
-		// 检查retcode
 		if retcode != 1 {
 			return "", fmt.Errorf("device returned error retcode: %d", retcode)
 		}
 
-		// 检查msg内容是否包含AT命令错误
 		if strings.Contains(msgContent, "+CME ERROR:") || strings.Contains(msgContent, "ERROR:") {
 			return "", fmt.Errorf("AT command execution failed: %s", msgContent)
 		}
@@ -380,25 +360,6 @@ func (s *DeviceCommService) sendATCommandStandard(deviceURL string, formData url
 
 	responseText := string(b)
 
-	// 添加调试日志
-	fmt.Printf("=== HTTP Response Debug ===\n")
-	fmt.Printf("Status Code: %d\n", resp.StatusCode)
-	fmt.Printf("Content-Type: %s\n", resp.Header.Get("Content-Type"))
-	fmt.Printf("Raw response body: %q\n", responseText)
-	fmt.Printf("Response body length: %d\n", len(responseText))
-
-	// 如果响应包含HTTP头信息，尝试提取响应体
-	if strings.Contains(responseText, "HTTP/1.1") {
-		parts := strings.Split(responseText, "\r\n\r\n")
-		if len(parts) > 1 {
-			responseText = parts[1]
-			fmt.Printf("Extracted response body: %q\n", responseText)
-		}
-	}
-
-	fmt.Printf("Final response text: %q\n", responseText)
-	fmt.Printf("=== End HTTP Response Debug ===\n")
-
 	return responseText, nil
 }
 
@@ -451,11 +412,6 @@ func sendATCommandRawTCP(ip string, port int, path, body string, timeout time.Du
 
 // parseATResponse 解析AT响应内容
 func (s *DeviceCommService) parseATResponse(command, responseText string) string {
-	// 添加调试日志
-	fmt.Printf("=== parseATResponse Debug ===\n")
-	fmt.Printf("Command: %s\n", command)
-	fmt.Printf("Response text: %q\n", responseText)
-
 	// 检查是否包含 AT 命令数据
 	if strings.Contains(responseText, "^DSONSBR:") {
 		return responseText
@@ -953,68 +909,66 @@ func (s *DeviceCommService) SyncDeviceConfigByType(deviceID uint, configType str
 
 	// 遍历指定类型的get命令，获取配置
 	for _, commandName := range commandsForType {
-		if strings.HasPrefix(commandName, "get_") {
-			fmt.Printf("=== Processing command: %s ===\n", commandName)
+		fmt.Printf("=== Processing command: %s ===\n", commandName)
 
-			// 发送查询命令
-			response, err := s.SendATCommandByName(deviceID, commandName, nil)
-			if err != nil {
-				fmt.Printf("Command %s failed with error: %v\n", commandName, err)
-				syncResults[commandName] = map[string]interface{}{
-					"success": false,
-					"error":   err.Error(),
-				}
-				continue
-			}
-
-			fmt.Printf("Command %s response: %q\n", commandName, response)
-
-			// 解析响应并保存到数据库
-			parsedConfig, err := s.parseATResponseToConfig(commandName, response, device.BoardType)
-			if err != nil {
-				fmt.Printf("Command %s parsing failed with error: %v\n", commandName, err)
-				syncResults[commandName] = map[string]interface{}{
-					"success": false,
-					"error":   err.Error(),
-				}
-				continue
-			}
-
-			fmt.Printf("Command %s parsed config: %+v\n", commandName, parsedConfig)
-
-			// 检查解析结果是否包含有效数据
-			if len(parsedConfig) == 0 || (len(parsedConfig) == 1 && parsedConfig["raw_response"] != nil) {
-				fmt.Printf("Command %s: No valid config data parsed, marking as failed\n", commandName)
-				syncResults[commandName] = map[string]interface{}{
-					"success":       false,
-					"error":         "No valid configuration data parsed",
-					"response":      response,
-					"parsed_config": parsedConfig,
-				}
-				continue
-			}
-
-			// 保存配置到数据库
-			if err := s.saveConfigToDatabase(deviceID, commandName, parsedConfig); err != nil {
-				fmt.Printf("Command %s database save failed with error: %v\n", commandName, err)
-				syncResults[commandName] = map[string]interface{}{
-					"success": false,
-					"error":   err.Error(),
-				}
-				continue
-			}
-
-			fmt.Printf("Command %s completed successfully\n", commandName)
+		// 发送查询命令
+		response, err := s.SendATCommandByName(deviceID, commandName, nil)
+		if err != nil {
+			fmt.Printf("Command %s failed with error: %v\n", commandName, err)
 			syncResults[commandName] = map[string]interface{}{
-				"success":  true,
-				"response": response,
-				"config":   parsedConfig,
+				"success": false,
+				"error":   err.Error(),
 			}
+			continue
+		}
 
-			// 将配置数据添加到总配置中
-			for k, v := range parsedConfig {
-				configData[k] = v
+		fmt.Printf("Command %s response: %q\n", commandName, response)
+
+		// 解析响应并保存到数据库
+		parsedConfig, err := s.parseATResponseToConfig(commandName, response, device.BoardType)
+		if err != nil {
+			fmt.Printf("Command %s parsing failed with error: %v\n", commandName, err)
+			syncResults[commandName] = map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
 			}
+			continue
+		}
+
+		fmt.Printf("Command %s parsed config: %+v\n", commandName, parsedConfig)
+
+		// 检查解析结果是否包含有效数据
+		if len(parsedConfig) == 0 || (len(parsedConfig) == 1 && parsedConfig["raw_response"] != nil) {
+			fmt.Printf("Command %s: No valid config data parsed, marking as failed\n", commandName)
+			syncResults[commandName] = map[string]interface{}{
+				"success":       false,
+				"error":         "No valid configuration data parsed",
+				"response":      response,
+				"parsed_config": parsedConfig,
+			}
+			continue
+		}
+
+		// 保存配置到数据库
+		if err := s.saveConfigToDatabase(deviceID, commandName, parsedConfig); err != nil {
+			fmt.Printf("Command %s database save failed with error: %v\n", commandName, err)
+			syncResults[commandName] = map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+			}
+			continue
+		}
+
+		fmt.Printf("Command %s completed successfully\n", commandName)
+		syncResults[commandName] = map[string]interface{}{
+			"success":  true,
+			"response": response,
+			"config":   parsedConfig,
+		}
+
+		// 将配置数据添加到总配置中
+		for k, v := range parsedConfig {
+			configData[k] = v
 		}
 	}
 
@@ -1039,7 +993,6 @@ func (s *DeviceCommService) SyncDeviceConfigByType(deviceID uint, configType str
 func (s *DeviceCommService) getCommandsForConfigType(configType string, commands map[string]CommandDef) []string {
 	var result []string
 
-	// 添加调试日志
 	fmt.Printf("=== DEBUG: Getting commands for config type: %s ===\n", configType)
 	fmt.Printf("Available commands: %v\n", getCommandNames(commands))
 
@@ -1057,13 +1010,13 @@ func (s *DeviceCommService) getCommandsForConfigType(configType string, commands
 			}
 		}
 	case "radio":
-		// 无线参数配置 - 包含无线参数、频段配置、跳频控制等
+		// 无线参数配置 - 包含无线参数、频段配置、跳频控制等（排除store参数）
 		for cmdName := range commands {
 			if strings.HasPrefix(cmdName, "get_") && (strings.Contains(cmdName, "radio_params") ||
 				strings.Contains(cmdName, "band_config") ||
 				strings.Contains(cmdName, "frequency_hopping")) &&
-				!strings.Contains(cmdName, "radio_params_store") &&
-				!strings.Contains(cmdName, "tdd_config") {
+				!strings.Contains(cmdName, "tdd_config") &&
+				!strings.Contains(cmdName, "store") {
 				result = append(result, cmdName)
 				fmt.Printf("  -> radio: %s\n", cmdName)
 			}
@@ -1116,10 +1069,10 @@ func (s *DeviceCommService) getCommandsForConfigType(configType string, commands
 			if strings.HasPrefix(cmdName, "get_") && (strings.Contains(cmdName, "device_info") ||
 				strings.Contains(cmdName, "device_type") ||
 				strings.Contains(cmdName, "ue_type") ||
-				strings.Contains(cmdName, "elog_function") ||
-				strings.Contains(cmdName, "aplog_function") ||
 				strings.Contains(cmdName, "reboot_device") ||
-				strings.Contains(cmdName, "restore_factory_settings")) {
+				strings.Contains(cmdName, "restore_factory_settings")) &&
+				!strings.Contains(cmdName, "elog_function") &&
+				!strings.Contains(cmdName, "aplog_function") {
 				result = append(result, cmdName)
 				fmt.Printf("  -> system: %s\n", cmdName)
 			}
@@ -1165,13 +1118,13 @@ func (s *DeviceCommService) getCommandsForConfigType(configType string, commands
 			}
 		}
 	case "debug":
-		// 调试相关命令 - 包含ELog、DRPR、调试功能等
+		// 调试相关命令 - 包含DRPR、调试功能等（排除elog和aplog）
 		for cmdName := range commands {
-			if strings.HasPrefix(cmdName, "get_") && (strings.Contains(cmdName, "elog_function") ||
-				strings.Contains(cmdName, "aplog_function") ||
-				strings.Contains(cmdName, "radio_param_report") ||
+			if strings.HasPrefix(cmdName, "get_") && (strings.Contains(cmdName, "radio_param_report") ||
 				strings.Contains(cmdName, "all_radio_param_report") ||
-				(strings.Contains(cmdName, "report") && strings.Contains(cmdName, "radio"))) {
+				(strings.Contains(cmdName, "report") && strings.Contains(cmdName, "radio"))) &&
+				!strings.Contains(cmdName, "elog_function") &&
+				!strings.Contains(cmdName, "aplog_function") {
 				result = append(result, cmdName)
 				fmt.Printf("  -> debug: %s\n", cmdName)
 			}
@@ -1205,9 +1158,11 @@ func (s *DeviceCommService) getCommandsForConfigType(configType string, commands
 			}
 		}
 	default:
-		// 默认返回所有get命令
+		// 默认返回所有get命令（排除elog和aplog）
 		for cmdName := range commands {
-			if strings.HasPrefix(cmdName, "get_") {
+			if strings.HasPrefix(cmdName, "get_") &&
+				!strings.Contains(cmdName, "elog_function") &&
+				!strings.Contains(cmdName, "aplog_function") {
 				result = append(result, cmdName)
 				fmt.Printf("  -> default: %s\n", cmdName)
 			}
@@ -1231,7 +1186,6 @@ func getCommandNames(commands map[string]CommandDef) []string {
 func (s *DeviceCommService) parseATResponseToConfig(commandName, response, boardType string) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
 
-	// 添加详细的调试日志
 	fmt.Printf("=== DEBUG: Parsing command: %s ===\n", commandName)
 	fmt.Printf("Raw response: %q\n", response)
 	fmt.Printf("Response length: %d\n", len(response))
@@ -1333,7 +1287,7 @@ func (s *DeviceCommService) parseATResponseToConfig(commandName, response, board
 
 	case "get_radio_params":
 		// 解析 AT^DRPC? 响应
-		// 示例响应：^DRPC: 24020,2,"27"\r\n\r\nOK
+		// 示例响应：^DRPC: (14700,5),(14900,5)\r\n\r\nOK
 		if strings.Contains(response, "^DRPC:") {
 			parts := strings.Split(response, "^DRPC:")
 			if len(parts) > 1 {
@@ -1343,74 +1297,65 @@ func (s *DeviceCommService) parseATResponseToConfig(commandName, response, board
 				value = strings.Split(value, "\n")[0] // 去除换行
 				value = strings.Split(value, "OK")[0] // 去除OK
 
-				values := strings.Split(value, ",")
-				if len(values) >= 3 {
-					// 清理频率值，去除所有括号和空格
-					frequency := strings.TrimSpace(values[0])
-					frequency = strings.ReplaceAll(frequency, "(", "")
-					frequency = strings.ReplaceAll(frequency, ")", "")
-					config["frequency"] = frequency
+				// 解析格式：(freq1,bandwidth1),(freq2,bandwidth2)
+				// 提取第一组参数作为主要配置
+				if strings.Contains(value, "(") && strings.Contains(value, ")") {
+					// 找到第一组括号内的内容
+					start := strings.Index(value, "(")
+					end := strings.Index(value, ")")
+					if start != -1 && end != -1 && end > start {
+						firstGroup := value[start+1 : end]
+						groupValues := strings.Split(firstGroup, ",")
+						if len(groupValues) >= 2 {
+							// 清理频率值，去除所有括号和空格
+							frequency := strings.TrimSpace(groupValues[0])
+							frequency = strings.ReplaceAll(frequency, "(", "")
+							frequency = strings.ReplaceAll(frequency, ")", "")
+							config["frequency"] = frequency
 
-					// 清理带宽值，去除所有括号和空格
-					bandwidth := strings.TrimSpace(values[1])
-					bandwidth = strings.ReplaceAll(bandwidth, "(", "")
-					bandwidth = strings.ReplaceAll(bandwidth, ")", "")
-					config["bandwidth"] = bandwidth
+							// 清理带宽值，去除所有括号和空格
+							bandwidth := strings.TrimSpace(groupValues[1])
+							bandwidth = strings.ReplaceAll(bandwidth, "(", "")
+							bandwidth = strings.ReplaceAll(bandwidth, ")", "")
+							config["bandwidth"] = bandwidth
 
-					// 清理功率值，去除引号、括号和空格
-					power := strings.TrimSpace(values[2])
-					power = strings.Trim(power, "\"")
-					power = strings.ReplaceAll(power, "(", "")
-					power = strings.ReplaceAll(power, ")", "")
-					config["power"] = power
+							// 对于AT^DRPC?命令，通常不包含功率信息，功率信息在AT^DRPS?中
+							// 但是为了前端显示一致性，我们设置一个默认的power值
+							// 前端会优先使用stored_power，如果没有则使用这个默认值
+							config["power"] = "23" // 默认功率值
 
-					fmt.Printf("Parsed radio params - frequency: %s, bandwidth: %s, power: %s\n", frequency, bandwidth, power)
+							fmt.Printf("Parsed radio params - frequency: %s, bandwidth: %s, power: %s\n", frequency, bandwidth, "23")
+						}
+					}
+				} else {
+					// 兼容旧格式：freq,bandwidth,power
+					values := strings.Split(value, ",")
+					if len(values) >= 3 {
+						// 清理频率值，去除所有括号和空格
+						frequency := strings.TrimSpace(values[0])
+						frequency = strings.ReplaceAll(frequency, "(", "")
+						frequency = strings.ReplaceAll(frequency, ")", "")
+						config["frequency"] = frequency
+
+						// 清理带宽值，去除所有括号和空格
+						bandwidth := strings.TrimSpace(values[1])
+						bandwidth = strings.ReplaceAll(bandwidth, "(", "")
+						bandwidth = strings.ReplaceAll(bandwidth, ")", "")
+						config["bandwidth"] = bandwidth
+
+						// 清理功率值，去除引号、括号和空格
+						power := strings.TrimSpace(values[2])
+						power = strings.Trim(power, "\"")
+						power = strings.ReplaceAll(power, "(", "")
+						power = strings.ReplaceAll(power, ")", "")
+						config["power"] = power
+
+						fmt.Printf("Parsed radio params (old format) - frequency: %s, bandwidth: %s, power: %s\n", frequency, bandwidth, power)
+					}
 				}
 			}
 		} else {
 			config["raw_response"] = response
-		}
-
-	case "get_radio_params_store":
-		// 解析 AT^DRPS? 响应
-		// 示例响应：^DRPS: 24020,2,"27"\r\n\r\nOK
-		if strings.Contains(response, "^DRPS:") {
-			parts := strings.Split(response, "^DRPS:")
-			if len(parts) > 1 {
-				// 提取数值部分，去除\r\n和OK
-				value := strings.TrimSpace(parts[1])
-				value = strings.Split(value, "\r")[0] // 去除\r\n
-				value = strings.Split(value, "\n")[0] // 去除换行
-				value = strings.Split(value, "OK")[0] // 去除OK
-
-				values := strings.Split(value, ",")
-				if len(values) >= 3 {
-					// 清理频率值，去除所有括号和空格
-					frequency := strings.TrimSpace(values[0])
-					frequency = strings.ReplaceAll(frequency, "(", "")
-					frequency = strings.ReplaceAll(frequency, ")", "")
-					config["stored_frequency"] = frequency
-
-					// 清理带宽值，去除所有括号和空格
-					bandwidth := strings.TrimSpace(values[1])
-					bandwidth = strings.ReplaceAll(bandwidth, "(", "")
-					bandwidth = strings.ReplaceAll(bandwidth, ")", "")
-					config["stored_bandwidth"] = bandwidth
-
-					// 清理功率值，去除引号、括号和空格
-					power := strings.TrimSpace(values[2])
-					power = strings.Trim(power, "\"")
-					power = strings.ReplaceAll(power, "(", "")
-					power = strings.ReplaceAll(power, ")", "")
-					config["stored_power"] = power
-
-					fmt.Printf("Parsed stored radio params - frequency: %s, bandwidth: %s, power: %s\n", frequency, bandwidth, power)
-				}
-			}
-		}
-		// 如果没有有效 stored_* 字段，返回空 map
-		if len(config) == 0 {
-			return config, nil
 		}
 
 	case "get_slave_max_tx_power":
@@ -1596,7 +1541,8 @@ func (s *DeviceCommService) parseATResponseToConfig(commandName, response, board
 
 	case "get_network_config":
 		// 解析 AT^NETIFCFG? 响应
-		// 示例响应：^NETIFCFG: <0>,<ip_address>,<ip_address> ^NETIFCFG: <1>,<ip_address>,<ip_address> ^NETIFCFG: <2>,<ip_address>,<ip_address> OK
+		// 示例响应：^NETIFCFG: 2,"192.168.1.100","255.255.255.0","192.168.1.1" OK
+		// 或者：^NETIFCFG: 2,"192.168.1.100","255.255.255.0" OK
 		// 或者：^NETIFCFG: 2,"192.168.1.100" OK
 		if strings.Contains(response, "^NETIFCFG:") {
 			// 提取所有网络接口配置
@@ -1617,18 +1563,36 @@ func (s *DeviceCommService) parseATResponseToConfig(commandName, response, board
 							config[fmt.Sprintf("interface_%s_type", interfaceType)] = interfaceType
 							config[fmt.Sprintf("interface_%s_master_ip", interfaceType)] = masterIP
 
-							// 如果有第3个参数（从IP），也保存
+							// 如果有第3个参数（子网掩码）
 							if len(values) >= 3 {
-								slaveIP := strings.Trim(strings.TrimSpace(values[2]), "\"")
-								config[fmt.Sprintf("interface_%s_slave_ip", interfaceType)] = slaveIP
+								subnetMask := strings.Trim(strings.TrimSpace(values[2]), "\"")
+								config[fmt.Sprintf("interface_%s_subnet_mask", interfaceType)] = subnetMask
 							} else {
-								config[fmt.Sprintf("interface_%s_slave_ip", interfaceType)] = ""
+								config[fmt.Sprintf("interface_%s_subnet_mask", interfaceType)] = ""
 							}
 
-							// 如果是接口类型2（模块IP），保存为主IP
+							// 如果有第4个参数（网关）
+							if len(values) >= 4 {
+								gateway := strings.Trim(strings.TrimSpace(values[3]), "\"")
+								config[fmt.Sprintf("interface_%s_gateway", interfaceType)] = gateway
+							} else {
+								config[fmt.Sprintf("interface_%s_gateway", interfaceType)] = ""
+							}
+
+							// 如果是接口类型2（模块IP），保存为主IP、子网掩码和网关
 							if interfaceType == "2" {
 								config["ip"] = masterIP
 								config["master_ip"] = masterIP
+
+								if len(values) >= 3 {
+									subnetMask := strings.Trim(strings.TrimSpace(values[2]), "\"")
+									config["subnet_mask"] = subnetMask
+								}
+
+								if len(values) >= 4 {
+									gateway := strings.Trim(strings.TrimSpace(values[3]), "\"")
+									config["gateway"] = gateway
+								}
 							}
 
 							fmt.Printf("Parsed network config - interface: %s, master_ip: %s\n", interfaceType, masterIP)
@@ -1720,8 +1684,8 @@ func (s *DeviceCommService) parseATResponseToConfig(commandName, response, board
 				value = strings.Split(value, "\r")[0] // 去除\r\n
 				value = strings.Split(value, "\n")[0] // 去除换行
 				value = strings.Trim(value, "\"")     // 去除引号
-				config["access_password"] = value
-				fmt.Printf("Parsed access password: %s\n", value)
+				config["encryption_key"] = value      // 只保存为encryption_key
+				fmt.Printf("Parsed encryption key: %s\n", value)
 			}
 		} else {
 			config["raw_response"] = response
@@ -2011,22 +1975,26 @@ func (s *DeviceCommService) saveConfigToDatabase(deviceID uint, commandName stri
 		category = "wireless"
 	case strings.Contains(commandName, "radio") || strings.Contains(commandName, "band") || strings.Contains(commandName, "hopping"):
 		category = "wireless"
-	case strings.Contains(commandName, "encryption") || strings.Contains(commandName, "security"):
+	case strings.Contains(commandName, "encryption") || strings.Contains(commandName, "security") || strings.Contains(commandName, "get_access_password") || strings.Contains(commandName, "set_encryption_key"):
 		category = "security"
-	case strings.Contains(commandName, "access") || strings.Contains(commandName, "device_type"):
+	case strings.Contains(commandName, "device_type"):
 		category = "system"
 	case strings.Contains(commandName, "tdd"):
 		category = "up_down"
 	case strings.Contains(commandName, "network_config"):
-		category = "network_settings"
+		category = "net_setting"
 	case strings.Contains(commandName, "access_nodes"):
 		category = "network_status"
 	default:
 		category = "debug"
 	}
 
-	// 保存每个配置项
+	// 保存每个配置项（排除stored_*字段）
 	for key, value := range config {
+		// 跳过stored_*字段
+		if strings.HasPrefix(key, "stored_") {
+			continue
+		}
 		// TDD配置特殊处理：current_setting要转为tdd_config索引写入
 		if key == "current_setting" && (category == "up_down" || strings.Contains(commandName, "tdd")) {
 			var idx string
@@ -2069,8 +2037,11 @@ func (s *DeviceCommService) saveConfigToDatabase(deviceID uint, commandName stri
 			valueStr = fmt.Sprintf("%v", value)
 		}
 
-		// 新增详细日志
 		fmt.Printf("[saveConfigToDatabase] deviceID=%d, category=%s, key=%s, value=%s\n", deviceID, category, key, valueStr)
+
+		if category == "net_setting" {
+			fmt.Printf("[saveConfigToDatabase] NET_SETTING DEBUG: deviceID=%d, category=%s, key=%s, value=%s\n", deviceID, category, key, valueStr)
+		}
 
 		if err == gorm.ErrRecordNotFound {
 			// 创建新配置

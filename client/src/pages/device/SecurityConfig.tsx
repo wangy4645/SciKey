@@ -207,14 +207,17 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId, isMe
       <div className={styles.currentKeySection}>
         <div className={styles.currentKeyLabel}>
           <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
-          <span style={{ fontWeight: 600 }}>{t('Now Algorithm')}:</span>
+          <span style={{ fontWeight: 600 }}>{t('Current Algorithm')}:</span>
         </div>
         <div className={styles.currentKeyValue}>
           {ENCRYPTION_ALGORITHM_LABELS[Number(config.encryption_algorithm) ?? 0]}
         </div>
       </div>
       <Divider />
-      <Form.Item label={t('Encryption Algorithm')} name="encryption_algorithm">
+      <div className={styles.newConfig}>
+        <strong>{t('New Algorithm')}:</strong>
+      </div>
+      <Form.Item name="encryption_algorithm">
         <Select>
           <Select.Option value={0}>{t('None')}</Select.Option>
           <Select.Option value={1}>SNOW3G</Select.Option>
@@ -492,11 +495,10 @@ const SecurityConfigComponent: React.FC<SecurityConfigProps> = ({ deviceId, isMe
               {renderKeySettings()}
             </TabPane>
           </Tabs>
-          <Divider />
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit" loading={loading}>
-                {t('Save Configuration')}
+                {t('Save')}
               </Button>
               <Button onClick={async () => {
                 form.resetFields();

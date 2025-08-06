@@ -122,10 +122,10 @@ const UpDownConfig2Mesh: React.FC<UpDownConfig2MeshProps> = ({
         // 不更新setting，保持为空字符串，这样placeholder能显示
       }));
       
-      message.success(t('TDD configuration saved successfully'));
+              message.success(t('TimeSlot configuration saved successfully'));
       await onSave(values);
     } catch (error) {
-      message.error(t('Failed to save TDD configuration'));
+              message.error(t('Failed to save TimeSlot configuration'));
     }
   };
 
@@ -135,7 +135,7 @@ const UpDownConfig2Mesh: React.FC<UpDownConfig2MeshProps> = ({
       setting: '',
     }));
     form.setFieldsValue({ setting: undefined });
-    message.info(t('TDD configuration reset'));
+            message.info(t('TimeSlot configuration reset'));
   };
 
   const getTDDDisplayName = (value: string) => {
@@ -151,13 +151,13 @@ const UpDownConfig2Mesh: React.FC<UpDownConfig2MeshProps> = ({
   return (
     <div className={styles.container}>
       <Card 
-        title={t('TDD Configuration')} 
+        title={t('TimeSlot Configuration')} 
         className={styles.card}
         extra={
           <SyncButton
             deviceId={device.id}
             configType="up_down"
-            configTypeName={t('TDD Configuration')}
+            configTypeName={t('TimeSlot Configuration')}
             onSyncSuccess={async () => {
               // 同步后刷新本地配置
               try {
@@ -194,7 +194,7 @@ const UpDownConfig2Mesh: React.FC<UpDownConfig2MeshProps> = ({
       >
         <div className={styles.warningText}>
           <InfoCircleOutlined style={{ marginRight: 8 }} />
-          <strong>{t('NOTE')}:&nbsp;&nbsp;</strong>{t('TDD configuration change requires restart to take effect')}
+                      <strong>{t('NOTE')}:&nbsp;&nbsp;</strong>{t('TimeSlot configuration change requires restart to take effect')}
         </div>
 
 
@@ -204,7 +204,7 @@ const UpDownConfig2Mesh: React.FC<UpDownConfig2MeshProps> = ({
         <div className={styles.currentKeySection}>
           <div className={styles.currentKeyLabel}>
             <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
-            <span style={{ fontWeight: 600 }}>{t('Now TDD Configuration')}:</span>
+            <span style={{ fontWeight: 600 }}>{t('Now TimeSlot Configuration')}:</span>
           </div>
           <div className={styles.currentKeyValue}>
             {getTDDDisplayName(config.currentSetting) || t('None')}
@@ -214,7 +214,7 @@ const UpDownConfig2Mesh: React.FC<UpDownConfig2MeshProps> = ({
         <Divider />
 
         <div className={styles.settingValue}>
-          <strong>{t('TDD Configuration')}:</strong>
+                      <strong>{t('TimeSlot Configuration')}:</strong>
           <Form
             form={form}
             layout="vertical"
@@ -229,7 +229,7 @@ const UpDownConfig2Mesh: React.FC<UpDownConfig2MeshProps> = ({
                   setConfig(prev => ({ ...prev, setting: value }));
                   form.setFieldsValue({ setting: value });
                 }}
-                placeholder={t('Select TDD configuration')}
+                placeholder={t('Select TimeSlot configuration')}
                 style={{ width: '100%' }}
               >
                 {tddOptions.map(option => (

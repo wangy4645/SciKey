@@ -28,6 +28,8 @@ import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   SyncOutlined,
+  ThunderboltFilled,
+  PoweroffOutlined,
 } from '@ant-design/icons';
 import styles from './WirelessConfig.module.css';
 import { deviceConfigAPI } from '../../services/deviceConfigAPI';
@@ -47,6 +49,8 @@ interface WirelessConfig {
   bandwidth: string;
   buildingChain: string;
   frequencyHopping: boolean;
+  fixedTxPower: number;
+  slaveMaxTxPower: number;
 }
 
 const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
@@ -57,6 +61,8 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
     bandwidth: '1.4M',
     buildingChain: '',
     frequencyHopping: false,
+    fixedTxPower: 23,
+    slaveMaxTxPower: 27,
   });
   const [loading, setLoading] = useState(false);
 
@@ -65,6 +71,8 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
   const [currentBandwidth, setCurrentBandwidth] = useState<string>('1.4M');
   const [currentBuildingChain, setCurrentBuildingChain] = useState<string>('');
   const [currentFrequencyHopping, setCurrentFrequencyHopping] = useState<boolean>(false);
+  const [currentFixedTxPower, setCurrentFixedTxPower] = useState<number>(23);
+  const [currentSlaveMaxTxPower, setCurrentSlaveMaxTxPower] = useState<number>(27);
 
   // 获取当前配置
   useEffect(() => {
@@ -87,6 +95,7 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
           const frequency = configData.frequency || configData.stored_frequency;
           const bandwidth = configData.bandwidth || configData.stored_bandwidth;
           const power = configData.power || configData.stored_power;
+          const slaveMaxTxPower = configData.slave_max_tx_power || configData.stored_slave_max_tx_power;
           const frequencyHopping = configData.frequency_hopping === 'true' || configData.frequency_hopping === '1';
           
           // 优先使用同步的频段配置，如果没有则根据频率值推断
@@ -121,10 +130,16 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
           }
           
           // 设置当前设备配置（用于显示Now Configuration）
-          setCurrentFrequencyBand(frequencyBand);
-          setCurrentBandwidth(bandwidthDisplay);
-          setCurrentBuildingChain(configData.building_chain || '');
-          setCurrentFrequencyHopping(frequencyHopping);
+                              setCurrentFrequencyBand(frequencyBand);
+                    setCurrentBandwidth(bandwidthDisplay);
+                    setCurrentBuildingChain(configData.building_chain || '');
+                    setCurrentFrequencyHopping(frequencyHopping);
+                    
+                    // 设置发射功率配置
+                    const fixedTxPower = power ? parseInt(power) : 23;
+                    const slaveMaxTxPowerValue = slaveMaxTxPower ? parseInt(slaveMaxTxPower) : 27;
+                    setCurrentFixedTxPower(fixedTxPower);
+                    setCurrentSlaveMaxTxPower(slaveMaxTxPowerValue);
           
           // 设置表单配置（同步当前设备状态）
           setConfig({
@@ -132,6 +147,8 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
             bandwidth: '1.4M', // 保持默认值，不显示当前配置
             buildingChain: '', // 保持为空，不显示当前配置
             frequencyHopping: frequencyHopping, // 同步当前频跳状态
+            fixedTxPower: 23,
+            slaveMaxTxPower: 27,
           });
           
         } else {
@@ -524,6 +541,141 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
     </Card>
   );
 
+  // Transmit Power 子页面
+  const renderTransmitPower = () => (
+    <Card title={t('Transmit Power')} className={styles.card}>
+      <Card 
+        title={
+          <span>
+            <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+            {t('Current Configuration')}
+          </span>
+        } 
+        className={styles.subCard}
+        headStyle={{ borderBottom: 'none' }}
+      >
+        <div className={styles.currentKeyValue}>
+          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <span style={{ fontWeight: 600 }}>{t('Fixed TX Power')}:</span>
+            <span style={{ fontWeight: 400 }}>{currentFixedTxPower} dBm</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <span style={{ fontWeight: 600 }}>{t('Slave Max TX Power')}:</span>
+            <span style={{ fontWeight: 400 }}>{currentSlaveMaxTxPower} dBm</span>
+          </div>
+        </div>
+      </Card>
+
+      <Divider />
+
+      <div className={styles.powerControls}>
+        <div className={styles.controlDescription}>
+          <strong>{t('Power Configuration')}:</strong>
+          <p>{t('Configure the transmit power settings for the device.')}</p>
+        </div>
+        
+        <Form layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label={t('Fixed TX Power (dBm)')}
+                name="fixedTxPower"
+                initialValue={config.fixedTxPower}
+              >
+                <Input
+                  type="number"
+                  min={-40}
+                  max={40}
+                  placeholder="23"
+                  value={config.fixedTxPower}
+                  onChange={(e) => setConfig({ ...config, fixedTxPower: parseInt(e.target.value) || 23 })}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label={t('Slave Max TX Power (dBm)')}
+                name="slaveMaxTxPower"
+                initialValue={config.slaveMaxTxPower}
+              >
+                <Input
+                  type="number"
+                  min={-40}
+                  max={40}
+                  placeholder="27"
+                  value={config.slaveMaxTxPower}
+                  onChange={(e) => setConfig({ ...config, slaveMaxTxPower: parseInt(e.target.value) || 27 })}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <div className={styles.buttonGroup}>
+            <Button
+              type="primary"
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  
+                  // 发送AT指令设置发射功率
+                  // 获取当前频率和带宽，用于构建AT^DRPC和AT^DRPS指令
+                  const response = await deviceConfigAPI.sendATCommand(Number(device.id), 'AT^DRPC?');
+                  let currentFreq = '24415'; // 默认频率
+                  let currentBandwidth = '1'; // 默认带宽
+                  
+                  if (response && response.data && response.data.includes('^DRPC:')) {
+                    // 解析当前频率和带宽
+                    const match = response.data.match(/^DRPC:\s*(\d+),(\d+)/);
+                    if (match) {
+                      currentFreq = match[1];
+                      currentBandwidth = match[2];
+                    }
+                  }
+                  
+                  // 发送AT^DRPC指令设置连接态功率（实时生效）
+                  const drpcCmd = `AT^DRPC=${currentFreq},${currentBandwidth},"${config.fixedTxPower}"`;
+                  await deviceConfigAPI.sendATCommand(Number(device.id), drpcCmd);
+                  
+                  // 发送AT^DRPS指令设置非连接态功率（保存到NVRAM）
+                  const drpsCmd = `AT^DRPS=${currentFreq},${currentBandwidth},"${config.fixedTxPower}"`;
+                  await deviceConfigAPI.sendATCommand(Number(device.id), drpsCmd);
+                  
+                  // 发送AT^DSSMTP指令设置从节点最大发射功率
+                  const dssmtpCmd = `AT^DSSMTP=${config.slaveMaxTxPower}`;
+                  await deviceConfigAPI.sendATCommand(Number(device.id), dssmtpCmd);
+                  
+                  setCurrentFixedTxPower(config.fixedTxPower);
+                  setCurrentSlaveMaxTxPower(config.slaveMaxTxPower);
+                  message.success(t('Transmit power configuration saved successfully'));
+                } catch (error) {
+                  console.error('Failed to save transmit power configuration:', error);
+                  message.error(t('Failed to save transmit power configuration'));
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              loading={loading}
+            >
+              {t('Save')}
+            </Button>
+            <Button
+              onClick={() => {
+                setConfig({
+                  ...config,
+                  fixedTxPower: currentFixedTxPower,
+                  slaveMaxTxPower: currentSlaveMaxTxPower,
+                });
+                message.info(t('Transmit power configuration reset'));
+              }}
+            >
+              {t('Reset')}
+            </Button>
+          </div>
+        </Form>
+      </div>
+    </Card>
+  );
+
   // mesh和star都用相同UI和交互，底层保存/同步时区分指令
   return (
     <div className={styles.container}>
@@ -584,6 +736,8 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
                       bandwidth: '1.4M',
                       buildingChain: '',
                       frequencyHopping: frequencyHopping,
+                      fixedTxPower: 23,
+                      slaveMaxTxPower: 27,
                     });
                   }
                 } catch (error) {
@@ -617,6 +771,18 @@ const WirelessConfig: React.FC<WirelessConfigProps> = ({ device, onSave }) => {
             key="bandWidth"
           >
             {renderBandWidth()}
+          </TabPane>
+
+          <TabPane
+            tab={
+              <span>
+                <PoweroffOutlined />
+                {t('Transmit Power')}
+              </span>
+            }
+            key="transmitPower"
+          >
+            {renderTransmitPower()}
           </TabPane>
 
           <TabPane

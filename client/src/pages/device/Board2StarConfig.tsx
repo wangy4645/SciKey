@@ -27,7 +27,7 @@ const Board2StarConfig: React.FC<Board2StarConfigProps> = ({ device, onConfigUpd
       <TabPane tab={t('Wireless Config')} key="network">
         <WirelessConfig2Star device={device} onConfigUpdate={onConfigUpdate} />
       </TabPane>
-      <TabPane tab={t('UpDown Config')} key="updown">
+              <TabPane tab={t('TS Config')} key="updown">
         <UpDownConfig2Star device={device} onConfigUpdate={onConfigUpdate} />
       </TabPane>
       <TabPane tab={t('Network Config')} key="netsetting">
@@ -44,7 +44,6 @@ const Board2StarConfig: React.FC<Board2StarConfigProps> = ({ device, onConfigUpd
           device={device} 
           onSave={async (values: any) => {
             // 这里可以添加保存逻辑，目前为空
-            console.log('Debug config values:', values);
           }} 
           loading={false} 
         />

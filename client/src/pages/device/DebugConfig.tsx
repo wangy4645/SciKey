@@ -124,11 +124,11 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
     };
   }, [device.id]);
 
-  // Debug Switch 子页面
+  // Debug Switch 子页面（Frequency Hopping 风格）
   const renderDebugSwitch = () => (
     <Card title={t('Debug Switch')} className={styles.card}>
       <div className={styles.currentConfig}>
-        <strong>{t('Status')}:</strong>
+        <strong>{t('Now Configuration')}:</strong>
         <div className={styles.statusDisplay}>
           <div className={`${styles.statusIndicator} ${config.debugSwitch ? styles.statusActive : styles.statusInactive}`}>
             <div className={styles.statusDot}></div>
@@ -138,195 +138,122 @@ const DebugConfig: React.FC<DebugConfigProps> = ({
           </div>
         </div>
       </div>
-
       <Divider />
-
-      <div className={styles.controlDescription}>
-        <strong>{t('Debug Switch Control')}:</strong>
+      <div className={styles.hoppingControls}>
+        <div className={styles.controlDescription}>
+          <strong>{t('Debug Switch Control')}:</strong>
+          <p>{t('Click the button below to enable or disable debug switch functionality.')}</p>
+        </div>
+        <div className={styles.hoppingButtons}>
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlayCircleOutlined />}
+            className={`${styles.hoppingButton} ${styles.openButton} ${config.debugSwitch ? styles.activeButton : ''}`}
+            onClick={async () => {
+              if (!config.debugSwitch) await handleDebugSwitchToggle();
+            }}
+            loading={loading}
+            disabled={config.debugSwitch}
+          >
+            {t('Open')}
+          </Button>
+          <Button
+            size="large"
+            icon={<PauseCircleOutlined />}
+            className={`${styles.hoppingButton} ${styles.closeButton} ${!config.debugSwitch ? styles.activeButton : ''}`}
+            onClick={async () => {
+              if (config.debugSwitch) await handleDebugSwitchToggle();
+            }}
+            loading={loading}
+            disabled={!config.debugSwitch}
+          >
+            {t('Close')}
+          </Button>
+        </div>
       </div>
-      
-      <div className={styles.hoppingButtons}>
-        <Button 
-          type="primary"
-          size="large"
-          icon={<PlayCircleOutlined />}
-          className={`${styles.hoppingButton} ${styles.openButton} ${config.debugSwitch ? styles.activeButton : ''}`}
-          onClick={handleDebugSwitchToggle}
-          loading={loading}
-          disabled={config.debugSwitch}
-        >
-          {t('Open')}
-        </Button>
-        
-        <Button 
-          size="large"
-          icon={<PauseCircleOutlined />}
-          className={`${styles.hoppingButton} ${styles.closeButton} ${!config.debugSwitch ? styles.activeButton : ''}`}
-          onClick={handleDebugSwitchToggle}
-          loading={loading}
-          disabled={!config.debugSwitch}
-        >
-          {t('Close')}
-        </Button>
-      </div>
-
-      {config.debugSwitch && (
-        <>
-          <Divider />
-          <div className={styles.messagesSection}>
-            <Title level={5}>{t('Debug Messages')}:</Title>
-            <div className={styles.messagesContainer}>
-              {debugMessages.length > 0 ? (
-                debugMessages.map((msg, index) => (
-                  <div key={index} className={styles.messageItem}>
-                    <Text type="secondary">[{new Date().toLocaleTimeString()}]</Text> {msg}
-                  </div>
-                ))
-              ) : (
-                <Text type="secondary">{t('No messages received yet...')}</Text>
-              )}
-            </div>
-          </div>
-        </>
-      )}
     </Card>
   );
 
-  // DRPR Reporting 子页面
+  // DRPR Reporting 子页面（左右分栏色条+大按钮+表格，按钮组与截图一致）
   const renderDrprReporting = () => (
     <Card title={t('DRPR Reporting')} className={styles.card}>
-      <Row gutter={16} align="middle" style={{ marginLeft: '32px' }}>
-        {/* 左侧控制按钮 */}
-        <Col flex="none" style={{ display: 'flex', alignItems: 'center' }}>
-          <div className={`${styles.hoppingButtons} ${styles.drprButtons}`} style={{ marginLeft: 0 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', marginBottom: 24 }}>
+        {/* 左侧按钮组 */}
+        <div style={{ minWidth: 160, height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className={styles.buttonGroup} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Button
-              type="primary"
+              className={`${styles.startBtn} ${drprMonitoringActive ? styles.btnDisabled : ''}`}
               size="large"
               icon={<PlayCircleOutlined />}
-              className={`${styles.hoppingButton} ${styles.openButton} ${drprMonitoringActive ? styles.activeButton : ''}`}
-              onClick={handleDrprReportingToggle}
-              loading={loading}
+              onClick={!drprMonitoringActive ? handleDrprReportingToggle : undefined}
               disabled={drprMonitoringActive}
             >
-              {t('Start')}
+              <span className={styles.btnText}>{t('Start')}</span>
             </Button>
             <Button
+              className={`${styles.pauseBtn} ${!drprMonitoringActive ? styles.btnDisabled : ''}`}
               size="large"
               icon={<PauseCircleOutlined />}
-              className={`${styles.hoppingButton} ${styles.closeButton} ${!drprMonitoringActive ? styles.activeButton : ''}`}
-              onClick={handleDrprReportingToggle}
-              loading={loading}
+              onClick={drprMonitoringActive ? handleDrprReportingToggle : undefined}
               disabled={!drprMonitoringActive}
             >
-              {t('Pause')}
+              <span className={styles.btnText}>{t('Pause')}</span>
             </Button>
           </div>
-        </Col>
-
-        {/* 中间空白 */}
-        <Col flex="32px" />
-
-        {/* 右侧信号质量图例 */}
-        <Col flex="auto">
-          <Row gutter={32} justify="start">
-            {/* RSRP图例 */}
-            <Col span={10}>
-              <div className={styles.signalLegend}>
-                <h4>{t('RSRP Threshold')}</h4>
-                <div className={styles.legendItem} style={{ backgroundColor: '#d32f2f' }}>
-                  {t('RSRP Extremely Poor')} &lt;-124
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#f44336' }}>
-                  {t('RSRP Poor')} -124~-104
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#ff9800' }}>
-                  {t('RSRP Low')} -103~-85
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#ffeb3b' }}>
-                  {t('RSRP Medium')} -84~-65
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#b7eb8f' }}>
-                  {t('RSRP High')} &gt;-64
-                </div>
-              </div>
-            </Col>
-
-            {/* SNR图例 */}
-            <Col span={10}>
-              <div className={styles.signalLegend}>
-                <h4>{t('SNR Threshold')}</h4>
-                <div className={styles.legendItem} style={{ backgroundColor: '#d32f2f' }}>
-                  {t('SNR Extremely Poor')} &lt;0
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#f44336' }}>
-                  {t('SNR Poor')} 0~6
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#ff9800' }}>
-                  {t('SNR Low')} 7~12
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#ffeb3b' }}>
-                  {t('SNR Medium')} 13~18
-                </div>
-                <div className={styles.legendItem} style={{ backgroundColor: '#b7eb8f' }}>
-                  {t('SNR High')} &gt;19
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Col>
-      </Row>
-
-      <Divider />
-
+        </div>
+        {/* 右侧色条说明 */}
+        <div style={{ flex: 1, display: 'flex', gap: 32 }}>
+          {/* RSRP 阈值色条卡片 */}
+          <div style={{ flex: 1 }}>
+            <div style={{ background: '#fafafa', borderRadius: 12, padding: '24px 24px 16px 24px', marginBottom: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+              <h4 style={{ marginBottom: 16 }}>{t('RSRP Threshold')}</h4>
+              <div style={{ background: '#d32f2f', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('RSRP Extremely Poor')} &lt;-124</div>
+              <div style={{ background: '#f44336', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('RSRP Poor')} -124~-104</div>
+              <div style={{ background: '#ff9800', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('RSRP Low')} -103~-85</div>
+              <div style={{ background: '#ffeb3b', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('RSRP Medium')} -84~-65</div>
+              <div style={{ background: '#b7eb8f', color: '#222', padding: 8, borderRadius: 4 }}>{t('RSRP High')} &gt;-64</div>
+            </div>
+          </div>
+          {/* SNR 阈值色条卡片 */}
+          <div style={{ flex: 1 }}>
+            <div style={{ background: '#fafafa', borderRadius: 12, padding: '24px 24px 16px 24px', marginBottom: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+              <h4 style={{ marginBottom: 16 }}>{t('SNR Threshold')}</h4>
+              <div style={{ background: '#d32f2f', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('SNR Extremely Poor')} &lt;0</div>
+              <div style={{ background: '#f44336', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('SNR Poor')} 0~6</div>
+              <div style={{ background: '#ff9800', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('SNR Low')} 7~12</div>
+              <div style={{ background: '#ffeb3b', color: '#222', padding: 8, borderRadius: 4, marginBottom: 8 }}>{t('SNR Medium')} 13~18</div>
+              <div style={{ background: '#b7eb8f', color: '#222', padding: 8, borderRadius: 4 }}>{t('SNR High')} &gt;19</div>
+            </div>
+          </div>
+        </div>
+      </div>
       {/* 数据表格 */}
       <div className={styles.dataTable}>
         <Table
           columns={[
-            { 
-              title: 'IP', 
-              dataIndex: 'device_ip', 
-              key: 'device_ip',
-              render: () => device.ip,
-              width: 120
-            },
-            { 
-              title: 'RSRP', 
-              dataIndex: 'rsrp', 
-              key: 'rsrp',
-              width: 100,
-              render: (rsrp: string) => {
-                const value = Number(rsrp);
-                let color = '#52c41a'; // 绿色 - 良好
-                if (value <= -104) color = '#ff4d4f'; // 红色 - 很差
-                else if (value <= -85) color = '#faad14'; // 黄色 - 一般
-                return <span style={{ backgroundColor: color, padding: '2px 6px', borderRadius: '3px', color: 'white' }}>{rsrp}</span>;
-              }
-            },
-            { 
-              title: 'SNR', 
-              dataIndex: 'snr', 
-              key: 'snr',
-              width: 100,
-              render: (snr: string) => {
-                const value = Number(snr);
-                let color = '#52c41a'; // 绿色 - 良好
-                if (value < 0) color = '#ff4d4f'; // 红色 - 很差
-                else if (value < 10) color = '#faad14'; // 黄色 - 一般
-                return <span style={{ backgroundColor: color, padding: '2px 6px', borderRadius: '3px', color: 'white' }}>{snr}</span>;
-              }
-            },
-            { 
-              title: 'DISTANCE', 
-              dataIndex: 'distance', 
-              key: 'distance',
-              width: 100
-            },
+            { title: 'IP', dataIndex: 'device_ip', key: 'device_ip', render: () => device.ip, width: 120 },
+            { title: 'RSRP', dataIndex: 'rsrp', key: 'rsrp', width: 100, render: (rsrp: string) => {
+              const value = Number(rsrp);
+              let color = '#52c41a';
+              if (value <= -104) color = '#ff4d4f';
+              else if (value <= -85) color = '#faad14';
+              return <span style={{ backgroundColor: color, padding: '2px 6px', borderRadius: '3px', color: 'white' }}>{rsrp}</span>;
+            } },
+            { title: 'SNR', dataIndex: 'snr', key: 'snr', width: 100, render: (snr: string) => {
+              const value = Number(snr);
+              let color = '#52c41a';
+              if (value < 0) color = '#ff4d4f';
+              else if (value < 10) color = '#faad14';
+              return <span style={{ backgroundColor: color, padding: '2px 6px', borderRadius: '3px', color: 'white' }}>{snr}</span>;
+            } },
+            { title: 'DISTANCE', dataIndex: 'distance', key: 'distance', width: 100 },
           ]}
           dataSource={drprMessages}
           pagination={false}
           size="small"
           rowKey={(record) => `${record.device_id}_${record.timestamp}_${record.index}`}
-          locale={{ emptyText: 'No DRPR data available' }}
+          locale={{ emptyText: <div style={{ textAlign: 'center', color: '#aaa', padding: 32 }}><div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>No data</div> }}
           scroll={{ x: 400 }}
         />
       </div>

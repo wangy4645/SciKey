@@ -353,14 +353,6 @@ const NetworkStatus: React.FC<NetworkStateConfigProps> = ({ device, onSave, load
                 {status.signalStrength > 0 ? `${status.signalStrength.toFixed(1)}%` : '-'}
               </Descriptions.Item>
             </Descriptions>
-            <Button 
-              type="primary" 
-              onClick={() => onSave(status)} 
-              loading={loading} 
-              style={{ marginTop: 16 }}
-            >
-              {t('Save')}
-            </Button>
           </Card>
         </Col>
       </Row>
